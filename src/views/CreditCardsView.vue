@@ -59,7 +59,7 @@ const cardsWithSpendInScope = computed(() =>
       <button type="button" class="btn btn-primary btn-sm" @click="startCreate">+ Add card</button>
     </div>
 
-    <div v-if="showForm" class="rounded-lg border border-primary/40 bg-base-100 p-5 max-w-xl">
+    <div v-if="showForm" class="rounded-lg border border-primary/40 bg-base-200 p-5 max-w-xl">
       <h2 class="font-display font-semibold mb-3">{{ editing ? 'Edit card' : 'New card' }}</h2>
       <CreditCardForm :initial="editing" @saved="onSaved" @cancel="showForm = false" />
     </div>
@@ -99,7 +99,7 @@ const cardsWithSpendInScope = computed(() =>
       </div>
 
       <template v-if="activeTab === 'cards'">
-        <div class="rounded-lg border border-base-300 bg-base-100 p-5">
+        <div class="rounded-lg border border-base-300 bg-base-200 p-5">
           <div class="flex items-baseline justify-between mb-3">
             <h2 class="font-display font-semibold">Total spending over time</h2>
             <p class="text-sm text-base-content/60">
@@ -128,7 +128,7 @@ const cardsWithSpendInScope = computed(() =>
         </div>
 
         <template v-else>
-          <div class="rounded-lg border border-base-300 bg-base-100 p-5">
+          <div class="rounded-lg border border-base-300 bg-base-200 p-5">
             <div class="flex items-baseline justify-between mb-3">
               <h2 class="font-display font-semibold">All cards combined</h2>
               <span class="font-mono tabular-nums font-medium text-sm">{{ formatCurrency(collectiveTotal) }}</span>
@@ -142,7 +142,7 @@ const cardsWithSpendInScope = computed(() =>
               <div
                 v-for="{ card, breakdown } in cardsWithSpendInScope"
                 :key="card.id"
-                class="rounded-lg border border-base-300 bg-base-100 p-5"
+                class="rounded-lg border border-base-300 bg-base-200 p-5"
               >
                 <div class="flex items-baseline justify-between mb-3">
                   <h3 class="font-display font-semibold">{{ card.name }}</h3>

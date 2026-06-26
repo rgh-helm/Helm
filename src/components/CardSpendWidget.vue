@@ -137,7 +137,7 @@ function formatRemaining(remaining) {
 </script>
 
 <template>
-  <div class="rounded-lg border border-base-300 bg-base-100 p-5">
+  <div class="rounded-lg border border-base-300 bg-base-200 p-5">
 
     <!-- Header -->
     <div class="flex items-center justify-between mb-5">
@@ -388,7 +388,7 @@ function formatRemaining(remaining) {
             class="flex-1 min-w-[140px] rounded-xl border px-4 py-3 flex flex-col gap-1.5 transition-colors"
             :class="s.hasStatement
               ? 'border-success/25 bg-success/5'
-              : 'border-dashed border-base-300 bg-base-100'">
+              : 'border-dashed border-base-300 bg-base-200'">
 
             <!-- Card name -->
             <p class="text-xs font-medium text-base-content/60 truncate" :title="s.card.name">

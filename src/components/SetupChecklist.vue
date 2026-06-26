@@ -64,7 +64,7 @@ const progressPct = computed(() => (completedCount.value / steps.value.length) *
 <template>
   <div
     v-if="!settings.checklistDismissed"
-    class="rounded-lg border border-base-300 bg-base-100 overflow-hidden"
+    class="rounded-lg border border-base-300 bg-base-200 overflow-hidden"
   >
     <!-- Header -->
     <div class="px-5 pt-5 pb-4 border-b border-base-300 flex items-start justify-between gap-3">

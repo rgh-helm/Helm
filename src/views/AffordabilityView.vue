@@ -127,7 +127,7 @@ const cashCoveredPercent = computed(() =>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div class="rounded-lg border border-base-300 bg-base-100 p-5 space-y-4">
+      <div class="rounded-lg border border-base-300 bg-base-200 p-5 space-y-4">
         <h2 class="font-display font-semibold">Assumptions</h2>
 
         <div>
@@ -296,7 +296,7 @@ const cashCoveredPercent = computed(() =>
       </div>
 
       <div class="space-y-6">
-        <div class="rounded-lg border border-base-300 bg-base-100 p-5 space-y-3">
+        <div class="rounded-lg border border-base-300 bg-base-200 p-5 space-y-3">
           <div class="flex items-center justify-between">
             <h2 class="font-display font-semibold">Monthly payment</h2>
             <span class="badge" :class="scoreBadgeClass">{{ scoreLabel }}</span>
@@ -357,7 +357,7 @@ const cashCoveredPercent = computed(() =>
           </div>
         </div>
 
-        <div class="rounded-lg border border-base-300 bg-base-100 p-5 space-y-3">
+        <div class="rounded-lg border border-base-300 bg-base-200 p-5 space-y-3">
           <h2 class="font-display font-semibold">Cash needed upfront</h2>
           <div class="grid grid-cols-2 gap-3 text-sm">
             <div>

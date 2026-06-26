@@ -107,7 +107,7 @@ const autoPayHint = computed(() => {
 </script>
 
 <template>
-  <div class="rounded-lg border border-base-300 bg-base-100 p-5 flex flex-col gap-4">
+  <div class="rounded-lg border border-base-300 bg-base-200 p-5 flex flex-col gap-4">
     <div class="flex items-start justify-between">
       <div>
         <div class="flex items-center gap-2">

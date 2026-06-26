@@ -43,27 +43,27 @@ const totalDebts = computed(() => accountsStore.currentTotal('debt'))
       </p>
     </div>
 
-    <div v-if="showForm" class="rounded-lg border border-primary/40 bg-base-100 p-5 max-w-xl">
+    <div v-if="showForm" class="rounded-lg border border-primary/40 bg-base-200 p-5 max-w-xl">
       <h2 class="font-display font-semibold mb-3">{{ editing ? 'Edit account' : 'New account' }}</h2>
       <AccountForm :initial="editing" :defaultKind="newAccountKind" @saved="onSaved" @cancel="showForm = false" />
     </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-      <div class="rounded-lg border border-base-300 bg-base-100 p-4">
+      <div class="rounded-lg border border-base-300 bg-base-200 p-4">
         <p class="text-xs text-base-content/60">Total assets</p>
         <p class="font-mono tabular-nums text-2xl font-semibold">{{ formatCurrency(totalAssets) }}</p>
       </div>
-      <div class="rounded-lg border border-base-300 bg-base-100 p-4">
+      <div class="rounded-lg border border-base-300 bg-base-200 p-4">
         <p class="text-xs text-base-content/60">Non-retirement assets</p>
         <p class="font-mono tabular-nums text-2xl font-semibold">{{ formatCurrency(totalNonRetirementAssets) }}</p>
       </div>
-      <div class="rounded-lg border border-base-300 bg-base-100 p-4">
+      <div class="rounded-lg border border-base-300 bg-base-200 p-4">
         <p class="text-xs text-base-content/60">Total debts</p>
         <p class="font-mono tabular-nums text-2xl font-semibold">{{ formatCurrency(totalDebts) }}</p>
       </div>
     </div>
 
-    <div v-if="accountsStore.accountsHistory.length" class="rounded-lg border border-base-300 bg-base-100 p-5">
+    <div v-if="accountsStore.accountsHistory.length" class="rounded-lg border border-base-300 bg-base-200 p-5 backdrop-blur-lg">
       <h2 class="font-display font-semibold mb-3">Assets &amp; debts over time</h2>
       <AccountsHistoryChart :history="accountsStore.accountsHistory" />
     </div>

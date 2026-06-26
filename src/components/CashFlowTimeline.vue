@@ -664,7 +664,7 @@ const currentSim = computed(() => monthSimulations.value[0] ?? null)
 </script>
 
 <template>
-  <div class="rounded-lg border border-base-300 bg-base-100 p-5">
+  <div class="rounded-lg border border-base-300 bg-base-200 p-5">
 
     <!-- Header -->
     <div class="flex flex-wrap items-start justify-between gap-3 mb-4">

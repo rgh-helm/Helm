@@ -9,3 +9,8 @@ body {
 .font-display {
   font-family: 'Fraunces', serif;
 }
+
+main > * {
+  position: relative;
+  z-index: 1;
+}

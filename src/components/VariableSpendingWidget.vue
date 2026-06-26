@@ -83,7 +83,7 @@ const incomeUnder = computed(() =>
 <template>
   <div
     v-if="hasData"
-    class="rounded-lg border border-base-300 bg-base-100 overflow-hidden"
+    class="rounded-lg border border-base-300 bg-base-200 overflow-hidden"
   >
     <!-- Coloured top bar — green when both are healthy, grades to warning/error -->
     <div

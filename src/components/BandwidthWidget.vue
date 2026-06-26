@@ -90,7 +90,7 @@ const perCardSuggestions = computed(() => {
 </script>
 
 <template>
-  <div class="rounded-lg border border-base-300 bg-base-100 overflow-hidden">
+  <div class="rounded-lg border border-base-300 bg-base-200 overflow-hidden">
 
     <!-- Header -->
     <div class="px-5 pt-5 pb-4 border-b border-base-300 flex items-center justify-between gap-3">
@@ -190,7 +190,7 @@ const perCardSuggestions = computed(() => {
 
       <!-- ── Comparison ── -->
       <div class="grid grid-cols-2 gap-3">
-        <div class="rounded-md bg-base-200/60 p-3">
+        <div class="rounded-md bg-base-100 p-3">
           <p class="text-[10px] text-base-content/50 mb-1">Your CC budget target</p>
           <p class="font-mono tabular-nums text-base font-semibold">
             {{ currentCCBudgetTotal > 0 ? formatCurrency(currentCCBudgetTotal) : '—' }}
@@ -206,7 +206,7 @@ const perCardSuggestions = computed(() => {
           </p>
         </div>
 
-        <div class="rounded-md bg-base-200/60 p-3">
+        <div class="rounded-md bg-base-100 p-3">
           <p class="text-[10px] text-base-content/50 mb-1">6mo avg actual CC spend</p>
           <p class="font-mono tabular-nums text-base font-semibold">
             {{ avgCCSpendTotal > 0 ? formatCurrency(avgCCSpendTotal) : '—' }}

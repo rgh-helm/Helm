@@ -30,7 +30,7 @@ function onSaved() {
       <p class="text-sm text-base-content/60">Every month you've logged, most recent first.</p>
     </div>
 
-    <div v-if="editing" class="rounded-lg border border-primary/40 bg-base-100 p-5">
+    <div v-if="editing" class="rounded-lg border border-primary/40 bg-base-200 p-5">
       <div class="flex items-center justify-between mb-3">
         <h2 class="font-display font-semibold">Editing {{ editing.month }}</h2>
         <button type="button" class="btn btn-ghost btn-xs" @click="editing = null">Cancel</button>
@@ -38,7 +38,7 @@ function onSaved() {
       <SnapshotForm :initial="editing" @saved="onSaved" />
     </div>
 
-    <div class="overflow-x-auto rounded-lg border border-base-300 bg-base-100">
+    <div class="overflow-x-auto rounded-lg border border-base-300 bg-base-200">
       <table class="table">
         <thead>
           <tr>

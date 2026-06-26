@@ -85,7 +85,7 @@ const emergencyTargetSummary = computed(() => targetSummary(accountsStore.emerge
       <button type="button" class="btn btn-primary btn-sm" @click="startCreate">+ New goal</button>
     </div>
 
-    <div class="rounded-lg border border-base-300 bg-base-100 p-5 space-y-3">
+    <div class="rounded-lg border border-base-300 bg-base-200 p-5 space-y-3">
       <div class="flex items-center justify-between">
         <h2 class="font-display font-semibold">Fund Accounts</h2>
         <RouterLink to="/accounts" class="btn btn-ghost btn-xs">Manage accounts →</RouterLink>
@@ -96,7 +96,7 @@ const emergencyTargetSummary = computed(() => targetSummary(accountsStore.emerge
         page — add, edit, or set contribution targets there.
       </p>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div class="rounded-md border border-base-300 px-3 py-2">
+        <div class="rounded-md border border-base-300 bg-base-100 px-3 py-2">
           <h3 class="text-sm font-semibold">House Fund</h3>
           <p class="font-mono tabular-nums text-lg font-semibold">{{ formatCurrency(finance.currentHouseFund) }}</p>
           <p class="text-xs text-base-content/60">{{ formatPercent(finance.houseFundRate, 2) }} blended rate</p>
@@ -110,7 +110,7 @@ const emergencyTargetSummary = computed(() => targetSummary(accountsStore.emerge
             </template>
           </p>
         </div>
-        <div class="rounded-md border border-base-300 px-3 py-2">
+        <div class="rounded-md border border-base-300 bg-base-100 px-3 py-2">
           <h3 class="text-sm font-semibold">Emergency Fund</h3>
           <p class="font-mono tabular-nums text-lg font-semibold">{{ formatCurrency(finance.currentEmergencyFund) }}</p>
           <p class="text-xs text-base-content/60">{{ formatPercent(finance.emergencyFundRate, 2) }} blended rate</p>
@@ -127,7 +127,7 @@ const emergencyTargetSummary = computed(() => targetSummary(accountsStore.emerge
       </div>
     </div>
 
-    <div v-if="showForm" class="rounded-lg border border-primary/40 bg-base-100 p-5 max-w-xl">
+    <div v-if="showForm" class="rounded-lg border border-primary/40 bg-base-200 p-5 max-w-xl">
       <h2 class="font-display font-semibold mb-3">{{ editing ? 'Edit goal' : 'New goal' }}</h2>
       <ScenarioForm :initial="editing" @saved="onSaved" @cancel="showForm = false" />
     </div>

@@ -158,11 +158,11 @@ const breakdown = computed(() => {
       <BandwidthWidget />
 
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div class="rounded-lg border border-base-300 bg-base-100 p-4">
+        <div class="rounded-lg border border-base-300 bg-base-200 p-4">
           <p class="text-xs text-base-content/60">Net worth</p>
           <p class="font-mono tabular-nums text-2xl font-semibold">{{ formatCurrency(latest.netWorth) }}</p>
         </div>
-        <div class="rounded-lg border border-base-300 bg-base-100 p-4">
+        <div class="rounded-lg border border-base-300 bg-base-200 p-4">
           <p class="text-xs text-base-content/60">Non-retirement cash flow (last month)</p>
           <p
             class="font-mono tabular-nums text-2xl font-semibold"
@@ -172,7 +172,7 @@ const breakdown = computed(() => {
           </p>
           <p class="text-xs text-base-content/40 mt-1">Already net of your retirement transfer</p>
         </div>
-        <div class="rounded-lg border border-base-300 bg-base-100 p-4">
+        <div class="rounded-lg border border-base-300 bg-base-200 p-4">
           <p class="text-xs text-base-content/60">Avg monthly savings ({{ settings.trailingAverageMonths }}mo)</p>
           <p class="font-mono tabular-nums text-2xl font-semibold">{{ formatCurrency(finance.avgMonthlySavings) }}</p>
         </div>
@@ -183,11 +183,11 @@ const breakdown = computed(() => {
       <CardSpendWidget />
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div class="rounded-lg border border-base-300 bg-base-100 p-5">
+        <div class="rounded-lg border border-base-300 bg-base-200 p-5">
           <h2 class="font-display font-semibold mb-3">Net worth over time</h2>
           <NetWorthChart :history="finance.netWorthHistory" />
         </div>
-        <div class="rounded-lg border border-base-300 bg-base-100 p-5">
+        <div class="rounded-lg border border-base-300 bg-base-200 p-5">
           <h2 class="font-display font-semibold mb-1">Income vs. expenses</h2>
           <p class="text-xs text-base-content/60 mb-3">
             Click a bar to see what's behind it.
@@ -251,20 +251,20 @@ const breakdown = computed(() => {
         </div>
       </div>
 
-      <div class="rounded-lg border border-base-300 bg-base-100 p-5">
+      <div class="rounded-lg border border-base-300 bg-base-200 p-5">
         <h2 class="font-display font-semibold mb-3">Spending by category — {{ finance.latestSnapshot.month }}</h2>
         <CategoryBreakdownChart :breakdown="latestCategoryBreakdown" />
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div class="rounded-lg border border-base-300 bg-base-100 p-5">
+        <div class="rounded-lg border border-base-300 bg-base-200 p-5">
           <h2 class="font-display font-semibold mb-3">Income by source — {{ finance.latestSnapshot.month }}</h2>
           <IncomeBreakdownChart
             :breakdown="monthlyIncomeBreakdown"
             empty-message="No income logged this month."
           />
         </div>
-        <div class="rounded-lg border border-base-300 bg-base-100 p-5">
+        <div class="rounded-lg border border-base-300 bg-base-200 p-5">
           <div class="flex items-center justify-between mb-3">
             <h2 class="font-display font-semibold">Income by source — {{ selectedYear }}</h2>
             <select v-if="finance.availableYears.length > 1" class="select select-bordered select-xs" v-model="selectedYear">
@@ -278,7 +278,7 @@ const breakdown = computed(() => {
         </div>
       </div>
 
-      <div class="rounded-lg border border-base-300 bg-base-100 p-5">
+      <div class="rounded-lg border border-base-300 bg-base-200 p-5">
         <h2 class="font-display font-semibold mb-1">Category trends</h2>
         <p class="text-xs text-base-content/60 mb-3">
           Every logged month, manual expenses and card spend combined. Top categories by all-time
@@ -287,7 +287,7 @@ const breakdown = computed(() => {
         <CategoryTrendsChart :months="finance.categoryTrends.months" :series="finance.categoryTrends.series" />
       </div>
 
-      <div v-if="topScenario" class="rounded-lg border border-base-300 bg-base-100 p-5">
+      <div v-if="topScenario" class="rounded-lg border border-base-300 bg-base-200 p-5">
         <h2 class="font-display font-semibold mb-2">Leading scenario: {{ topScenario.scenario.name }}</h2>
         <div class="flex items-center gap-3">
           <progress

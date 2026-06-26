@@ -128,7 +128,7 @@ function updateItem(id, field, value) {
 </script>
 
 <template>
-  <div class="rounded-lg border border-base-300 bg-base-100">
+  <div class="rounded-lg border border-base-300 bg-base-200">
 
     <!-- Header -->
     <div class="flex items-center justify-between px-4 py-3 border-b border-base-300 gap-3">

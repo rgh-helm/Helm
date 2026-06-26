@@ -3,6 +3,7 @@ import { onMounted, ref, computed } from 'vue'
 import NavBar from './components/NavBar.vue'
 import OnboardingWizard from './components/OnboardingWizard.vue'
 import ToastNotification from './components/ToastNotification.vue'
+import NauticalBackground from './components/NauticalBackground.vue'
 import { useFinanceStore } from './stores/financeStore'
 import { useGoalsStore } from './stores/goalsStore'
 import { useCreditCardStore } from './stores/creditCardStore'
@@ -44,7 +45,8 @@ const showOnboarding = computed(() => appReady.value && !settings.onboardingComp
 </script>
 
 <template>
-  <div class="min-h-screen bg-base-200 flex flex-col" :data-theme="settings.theme">
+  <div class="min-h-screen flex flex-col" :data-theme="settings.theme">
+    <NauticalBackground />
     <NavBar />
     <main class="max-w-6xl mx-auto px-4 lg:px-8 py-8 flex-1 w-full">
       <RouterView />

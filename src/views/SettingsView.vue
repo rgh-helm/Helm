@@ -247,7 +247,7 @@ async function handleImport() {
       Changes on this page save automatically — no Save button needed.
     </div>
 
-    <div class="rounded-lg border border-base-300 bg-base-100 p-5 space-y-4">
+    <div class="rounded-lg border border-base-300 bg-base-200 p-5 space-y-4">
       <div>
         <h2 class="font-display font-semibold mb-1">Calculations</h2>
         <label class="label-text font-medium text-sm">Trailing average window</label>
@@ -287,7 +287,7 @@ async function handleImport() {
       </div>
     </div>
 
-    <div class="rounded-lg border border-base-300 bg-base-100 p-5 space-y-4">
+    <div class="rounded-lg border border-base-300 bg-base-200 p-5 space-y-4">
       <div>
         <h2 class="font-display font-semibold mb-1">Bandwidth Widget — Primary Income</h2>
         <p class="text-xs text-base-content/60 mb-3">
@@ -323,7 +323,7 @@ async function handleImport() {
       </div>
     </div>
 
-    <div class="rounded-lg border border-base-300 bg-base-100 p-5 space-y-4">
+    <div class="rounded-lg border border-base-300 bg-base-200 p-5 space-y-4">
       <div>
         <h2 class="font-display font-semibold mb-1">Bandwidth Widget — Excluded Categories</h2>
         <p class="text-xs text-base-content/60 mb-3">
@@ -358,7 +358,7 @@ async function handleImport() {
       </div>
     </div>
 
-    <div class="rounded-lg border border-base-300 bg-base-100 p-5 space-y-4">
+    <div class="rounded-lg border border-base-300 bg-base-200 p-5 space-y-4">
       <div>
         <h2 class="font-display font-semibold mb-1">Affordability Defaults</h2>
         <p class="text-xs text-base-content/60 mb-3">
@@ -472,7 +472,7 @@ async function handleImport() {
       </div>
     </div>
 
-    <div class="rounded-lg border border-base-300 bg-base-100 p-5 space-y-3">
+    <div class="rounded-lg border border-base-300 bg-base-200 p-5 space-y-3">
       <div>
         <h2 class="font-display font-semibold mb-1">Categories</h2>
         <p class="text-xs text-base-content/60 mb-3">
@@ -486,7 +486,7 @@ async function handleImport() {
         <div v-for="c in categoriesStore.categories" :key="c.id" class="flex items-center gap-2">
           <input
             type="color"
-            class="w-8 h-8 rounded border border-base-300 cursor-pointer shrink-0 p-0.5 bg-base-100"
+            class="w-8 h-8 rounded border border-base-300 cursor-pointer shrink-0 p-0.5 bg-base-200"
             :value="c.color || categoryColor(c.name, categoriesStore.categories)"
             :title="c.color ? 'Custom color — click to change' : 'Auto color — click to set a custom one'"
             @change="updateCategoryColor(c, $event.target.value)"
@@ -525,7 +525,7 @@ async function handleImport() {
       <p v-if="categoryError" class="text-xs text-error">{{ categoryError }}</p>
     </div>
 
-    <div class="rounded-lg border border-base-300 bg-base-100 p-5 space-y-3">
+    <div class="rounded-lg border border-base-300 bg-base-200 p-5 space-y-3">
       <div>
         <h2 class="font-display font-semibold mb-1">Income Options</h2>
         <p class="text-xs text-base-content/60 mb-3">
@@ -659,7 +659,7 @@ async function handleImport() {
               </div>
 
               <!-- Month preview -->
-              <div v-if="previewOccurrences(o)" class="text-xs text-base-content/50 bg-base-100 rounded px-3 py-2">
+              <div v-if="previewOccurrences(o)" class="text-xs text-base-content/50 bg-base-200 rounded px-3 py-2">
                 <span class="font-medium">This month:</span> {{ previewOccurrences(o) }}
               </div>
             </template>
@@ -683,7 +683,7 @@ async function handleImport() {
       <p v-if="incomeOptionError" class="text-xs text-error">{{ incomeOptionError }}</p>
     </div>
 
-    <div class="rounded-lg border border-base-300 bg-base-100 p-5 space-y-4">
+    <div class="rounded-lg border border-base-300 bg-base-200 p-5 space-y-4">
       <div>
         <h2 class="font-display font-semibold mb-1">Storage location</h2>
         <p class="text-sm text-base-content/60 font-mono break-all">{{ storagePath || 'Loading…' }}</p>

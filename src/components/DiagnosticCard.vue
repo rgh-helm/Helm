@@ -200,7 +200,7 @@ function signedCurrency(v) {
 
 <template>
   <div
-    class="rounded-lg border border-base-300 bg-base-100 overflow-hidden"
+    class="rounded-lg border border-base-300 bg-base-200 overflow-hidden"
     style="border-left: 4px solid oklch(var(--s))"
   >
     <div class="p-5">
@@ -236,7 +236,7 @@ function signedCurrency(v) {
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
 
         <!-- Deployable cash -->
-        <div class="rounded-md bg-base-200/60 p-4">
+        <div class="rounded-md bg-base-100/60 p-4">
           <p class="text-xs text-base-content/50 mb-2">
             Available to save
             <span class="opacity-60">· {{ isLogged ? 'actual' : 'estimated' }}</span>
@@ -257,7 +257,7 @@ function signedCurrency(v) {
         </div>
 
         <!-- Savings rate -->
-        <div class="rounded-md bg-base-200/60 p-4">
+        <div class="rounded-md bg-base-100/60 p-4">
           <p class="text-xs text-base-content/50 mb-2">
             Savings rate
             <span class="opacity-60">· {{ isLogged ? 'actual' : 'estimated' }}</span>
@@ -275,7 +275,7 @@ function signedCurrency(v) {
         </div>
 
         <!-- Pinned goal -->
-        <div class="rounded-md bg-base-200/60 p-4">
+        <div class="rounded-md bg-base-100/60 p-4">
           <div class="flex items-center justify-between mb-2">
             <p class="text-xs text-base-content/50">Goal</p>
             <div class="flex items-center gap-2">
@@ -333,7 +333,7 @@ function signedCurrency(v) {
       </div>
 
       <!-- ── Debt-to-savings chain ── -->
-      <div v-if="debtImpacts.length" class="mb-5 rounded-md border border-base-300 divide-y divide-base-300">
+      <div v-if="debtImpacts.length" class="mb-5 rounded-md border border-base-300 divide-y divide-base-300 bg-base-100/60">
         <div
           v-for="impact in debtImpacts"
           :key="impact.name"
@@ -358,7 +358,7 @@ function signedCurrency(v) {
         </p>
 
         <div v-if="categoryVariance.length" class="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-3">
-          <div v-for="v in categoryVariance" :key="v.category" class="flex flex-col gap-0.5">
+          <div v-for="v in categoryVariance" :key="v.category" class="flex flex-col gap-0.5 bg-base-100/60 rounded-md p-3">
             <p class="text-[10px] text-base-content/45 truncate" :title="v.category">{{ v.category }}</p>
             <p
               class="font-mono tabular-nums text-base font-semibold leading-tight"

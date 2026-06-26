@@ -337,7 +337,7 @@ async function save() {
       </div>
     </div>
 
-    <div class="rounded-lg border border-dashed border-base-300 px-4 py-3">
+    <div class="rounded-lg border border-dashed border-base-300 px-4 py-3 bg-base-200">
       <p class="text-sm text-base-content/70">
         Assets and debts (checking, savings, 401k, loans, ...) are tracked on the
         <RouterLink to="/accounts" class="link link-primary">Accounts</RouterLink> page now — set
@@ -349,7 +349,7 @@ async function save() {
     <div>
       <label class="font-medium text-sm block mb-1">Notes</label>
       <textarea
-        class="textarea textarea-bordered w-full"
+        class="textarea textarea-bordered w-full bg-base-200"
         rows="2"
         v-model="form.notes"
         placeholder="Anything worth remembering about this month"
@@ -358,7 +358,7 @@ async function save() {
 
     <!-- Sticky save footer -->
     <div class="sticky bottom-0 z-10 -mx-1 px-1 pb-1 pt-3 bg-gradient-to-t from-base-200 via-base-200/95 to-transparent pointer-events-none">
-      <div class="rounded-xl border border-base-300 bg-base-100 shadow-lg px-4 py-3 flex items-center justify-between gap-3 pointer-events-auto">
+      <div class="rounded-xl border border-base-300 bg-base-200 shadow-lg px-4 py-3 flex items-center justify-between gap-3 pointer-events-auto">
         <div class="text-xs text-base-content/40 leading-snug">
           <template v-if="isDirty">
             <span class="text-warning font-medium">Unsaved changes</span>

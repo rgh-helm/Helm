@@ -84,7 +84,7 @@ const sentences = computed(() =>
 <template>
   <div
     v-if="sentences.length"
-    class="rounded-lg border border-base-300 bg-base-100 px-5 py-4"
+    class="rounded-lg border border-base-300 bg-base-200 px-5 py-4"
   >
     <p class="text-xs font-medium text-base-content/40 uppercase tracking-wide mb-2" style="letter-spacing:0.06em">
       Summary
