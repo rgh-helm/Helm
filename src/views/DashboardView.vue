@@ -133,7 +133,7 @@ const breakdown = computed(() => {
 </script>
 
 <template>
-  <div class="space-y-8">
+  <div class="space-y-8 w-full">
     <div>
       <h1 class="font-display text-2xl font-semibold">Dashboard</h1>
       <p class="text-sm text-base-content/60">Your financial baseline at a glance.</p>

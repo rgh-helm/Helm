@@ -47,10 +47,14 @@ const showOnboarding = computed(() => appReady.value && !settings.onboardingComp
 <template>
   <div class="min-h-screen flex flex-col" :data-theme="settings.theme">
     <NauticalBackground />
-    <NavBar />
-    <main class="max-w-6xl mx-auto px-4 lg:px-8 py-8 flex-1 w-full">
-      <RouterView />
-    </main>
+    <NavBar class="sticky top-0 z-10" />
+    <div class="flex-1 overflow-y-auto">
+      <main class="max-w-6xl mx-auto px-4 lg:px-8 py-8 w-full">
+        <div style="position: relative; z-index: 1;">
+          <RouterView />
+        </div>
+      </main>
+    </div>
     <footer class="text-center text-xs text-base-content/40 py-3">
       Helm <span v-if="appVersion">v{{ appVersion }}</span>
     </footer>
