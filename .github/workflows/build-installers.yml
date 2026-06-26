@@ -1,8 +1,5 @@
 name: Build Installers
 
-# Triggers:
-# - Automatically when you push a tag like "v0.38.0"
-# - Manually from the Actions tab on GitHub
 on:
   push:
     tags:
@@ -10,95 +7,89 @@ on:
   workflow_dispatch:
 
 jobs:
-
   # ─── macOS → .dmg ───────────────────────────────────────────────────
   build-mac:
     runs-on: macos-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
-
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: 'npm'
-
       - name: Install dependencies
         run: npm ci
-
       - name: Build app + package DMG
         run: npm run build && npx electron-builder --mac dmg --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
-
-      - name: Get version
-        run: echo "VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_ENV
-
       - name: Upload DMG
         uses: actions/upload-artifact@v5
         with:
-          name: Helm-${{ env.VERSION }}-mac
+          name: mac-installer
           path: release/*.dmg
-          retention-days: 30
+          retention-days: 1
 
   # ─── Linux → .deb ───────────────────────────────────────────────────
   build-linux:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
-
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: 'npm'
-
       - name: Install dependencies
         run: npm ci
-
       - name: Build app + package DEB
         run: npm run build && npx electron-builder --linux deb --publish never
-
-      - name: Get version
-        run: echo "VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_ENV
-
       - name: Upload DEB
         uses: actions/upload-artifact@v5
         with:
-          name: Helm-${{ env.VERSION }}-linux
+          name: linux-installer
           path: release/*.deb
-          retention-days: 30
+          retention-days: 1
 
   # ─── Windows → .exe ─────────────────────────────────────────────────
   build-win:
     runs-on: windows-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
-
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: 'npm'
-
       - name: Install dependencies
         run: npm ci
-
       - name: Build app + package EXE
         run: npm run build && npx electron-builder --win nsis --publish never
-
-      - name: Get version
-        run: echo "VERSION=$(node -p "require('./package.json').version")" >> $env:GITHUB_ENV
-
       - name: Upload EXE
         uses: actions/upload-artifact@v5
         with:
-          name: Helm-${{ env.VERSION }}-win
+          name: win-installer
           path: release/*.exe
-          retention-days: 30
+          retention-days: 1
+
+  # ─── Publish GitHub Release ──────────────────────────────────────────
+  release:
+    needs: [build-mac, build-linux, build-win]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download all installers
+        uses: actions/download-artifact@v5
+        with:
+          path: installers
+          merge-multiple: true
+
+      - name: Publish Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: installers/*
+          generate_release_notes: true

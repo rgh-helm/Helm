@@ -2,6 +2,10 @@
 
 A local-first personal finance tracker built around a specific idea: **live entirely on one income, save the other**. Log monthly income and expenses, maintain persistent asset and debt accounts, track credit card spending separately, and measure your savings trajectory against House and Emergency Fund goals. Ships as a desktop app (Electron) — no browser, server, or account required.
 
+| macOS   | [Download .dmg](https://github.com/OWNER/helm/releases/latest/download/Helm-1.0.0-arm64.dmg) |
+| Linux   | [Download .deb](https://github.com/OWNER/helm/releases/latest/download/helm_1.0.0_amd64.deb) |
+| Windows | [Download .exe](https://github.com/OWNER/helm/releases/latest/download/Helm-Setup-1.0.0.exe) |
+
 ## Getting started (development)
 
 ```bash
