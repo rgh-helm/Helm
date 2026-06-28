@@ -57,11 +57,9 @@
       "output": "release"
     },
     "linux": {
-      "target": [
-        "deb"
-      ],
+      "target": ["deb"],
       "category": "Office",
-      "icon": "build/icons/icon.png"
+      "icon": "build/icons"
     },
     "mac": {
       "target": "dmg",
