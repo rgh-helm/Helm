@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { deepClone } from '../utils/format'
 
 export const DEFAULT_TRAILING_AVERAGE_MONTHS = 6
-export const DEFAULT_THEME = 'helm'
+export const DEFAULT_THEME = 'ledger'
 
 // All null by default — "unset," meaning the Affordability calculator
 // falls back to its own hardcoded starting points (see AffordabilityView.vue)
@@ -12,6 +12,7 @@ export const DEFAULT_THEME = 'helm'
 // can just pass partial updates straight through.
 const EMPTY_AFFORDABILITY_DEFAULTS = {
   grossMonthlyIncome: null,
+  grossIncomeSources: [],  // [{label, amount}] — one per earner
   defaultMortgageRatePercent: null,
   defaultLoanTermYears: null,
   defaultPropertyTaxRatePercent: null,
@@ -44,6 +45,7 @@ export const useSettingsStore = defineStore('settings', () => {
     checklistDismissed.value = settings.checklistDismissed ?? false
     affordabilityDefaults.value = {
       grossMonthlyIncome: settings.grossMonthlyIncome ?? null,
+      grossIncomeSources: Array.isArray(settings.grossIncomeSources) ? settings.grossIncomeSources : [],
       defaultMortgageRatePercent: settings.defaultMortgageRatePercent ?? null,
       defaultLoanTermYears: settings.defaultLoanTermYears ?? null,
       defaultPropertyTaxRatePercent: settings.defaultPropertyTaxRatePercent ?? null,

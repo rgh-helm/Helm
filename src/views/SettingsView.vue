@@ -51,12 +51,22 @@ watch(
 
 // Affordability Defaults — several fields, so unlike the trailing window
 // these commit via an explicit Save button rather than per-field on-blur.
-const affordabilityForm = ref({ ...settings.affordabilityDefaults })
+const affordabilityForm = ref({
+  ...settings.affordabilityDefaults,
+  grossIncomeSources: Array.isArray(settings.affordabilityDefaults.grossIncomeSources)
+    ? settings.affordabilityDefaults.grossIncomeSources.map(s => ({ ...s }))
+    : [],
+})
 const affordabilitySaved = ref(false)
 watch(
   () => settings.affordabilityDefaults,
   (val) => {
-    affordabilityForm.value = { ...val }
+    affordabilityForm.value = {
+      ...val,
+      grossIncomeSources: Array.isArray(val.grossIncomeSources)
+        ? val.grossIncomeSources.map(s => ({ ...s }))
+        : [],
+    }
   }
 )
 
@@ -372,14 +382,44 @@ async function handleImport() {
       </div>
 
       <div>
-        <label class="label-text font-medium text-sm">Gross monthly income</label>
-        <input
-          type="number"
-          class="input input-bordered input-sm w-full"
-          v-model.number="affordabilityForm.grossMonthlyIncome"
-          min="0"
-          placeholder="Pre-tax salary, not take-home"
-        />
+        <label class="label-text font-medium text-sm">Gross monthly income sources</label>
+        <p class="text-xs text-base-content/50 mb-2">One row per earner — pre-tax, not take-home.</p>
+        <div class="space-y-2">
+          <div
+            v-for="(src, i) in affordabilityForm.grossIncomeSources"
+            :key="i"
+            class="flex items-center gap-2"
+          >
+            <input
+              type="text"
+              class="input input-bordered input-sm flex-1"
+              placeholder="Name (e.g. Riley)"
+              v-model="affordabilityForm.grossIncomeSources[i].label"
+            />
+            <input
+              type="number"
+              class="input input-bordered input-sm w-32 font-mono"
+              placeholder="0"
+              min="0"
+              v-model.number="affordabilityForm.grossIncomeSources[i].amount"
+            />
+            <button
+              type="button"
+              class="btn btn-ghost btn-xs btn-circle text-error"
+              @click="affordabilityForm.grossIncomeSources.splice(i, 1)"
+            >✕</button>
+          </div>
+          <button
+            type="button"
+            class="btn btn-ghost btn-xs border border-dashed border-base-300 text-base-content/40 w-full"
+            @click="affordabilityForm.grossIncomeSources.push({ label: '', amount: 0 })"
+          >+ Add income source</button>
+        </div>
+        <p class="text-xs text-base-content/40 mt-2">
+          Total: <span class="font-mono font-medium">{{
+            formatCurrency(affordabilityForm.grossIncomeSources.reduce((a, s) => a + (Number(s.amount) || 0), 0))
+          }}</span>
+        </p>
       </div>
 
       <div class="grid grid-cols-2 gap-3">
@@ -486,7 +526,7 @@ async function handleImport() {
         <div v-for="c in categoriesStore.categories" :key="c.id" class="flex items-center gap-2">
           <input
             type="color"
-            class="w-8 h-8 rounded border border-base-300 cursor-pointer shrink-0 p-0.5 bg-base-200"
+            class="w-8 h-8 rounded border border-base-300 cursor-pointer shrink-0 p-0.5 bg-base-100"
             :value="c.color || categoryColor(c.name, categoriesStore.categories)"
             :title="c.color ? 'Custom color — click to change' : 'Auto color — click to set a custom one'"
             @change="updateCategoryColor(c, $event.target.value)"
@@ -527,9 +567,9 @@ async function handleImport() {
 
     <div class="rounded-lg border border-base-300 bg-base-200 p-5 space-y-3">
       <div>
-        <h2 class="font-display font-semibold mb-1">Income Options</h2>
+        <h2 class="font-display font-semibold mb-1">Net Income Options</h2>
         <p class="text-xs text-base-content/60 mb-3">
-          Manage income sources for Monthly Entry. Click the chevron on any source to configure a
+          Manage take-home income sources for Monthly Entry. Click the chevron on any source to configure a
           pay schedule — the app will generate the correct day-of-month entries automatically
           each month so you only need to confirm the amounts.
         </p>
@@ -659,7 +699,7 @@ async function handleImport() {
               </div>
 
               <!-- Month preview -->
-              <div v-if="previewOccurrences(o)" class="text-xs text-base-content/50 bg-base-200 rounded px-3 py-2">
+              <div v-if="previewOccurrences(o)" class="text-xs text-base-content/50 bg-base-100 rounded px-3 py-2">
                 <span class="font-medium">This month:</span> {{ previewOccurrences(o) }}
               </div>
             </template>

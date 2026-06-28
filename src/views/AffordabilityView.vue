@@ -42,12 +42,18 @@ const pmiAnnualRatePercent = ref(defaults.defaultPmiRatePercent ?? 0.5)
 function blankIncomeSource(label, amount) {
   return { id: uid(), label, amount }
 }
-const incomeSources = ref([
-  blankIncomeSource(
-    defaults.grossMonthlyIncome != null ? 'Primary income' : 'Estimated from logged income',
-    defaults.grossMonthlyIncome ?? Math.round(finance.avgMonthlyIncome) ?? 0
-  ),
-])
+// Seed from grossIncomeSources (multiple earners) if set, fall back to
+// legacy grossMonthlyIncome single value, then to logged income estimate.
+const incomeSources = ref(
+  Array.isArray(defaults.grossIncomeSources) && defaults.grossIncomeSources.length
+    ? defaults.grossIncomeSources.map((s) => blankIncomeSource(s.label || 'Income', s.amount || 0))
+    : [
+        blankIncomeSource(
+          defaults.grossMonthlyIncome != null ? 'Primary income' : 'Estimated from logged income',
+          defaults.grossMonthlyIncome ?? Math.round(finance.avgMonthlyIncome) ?? 0
+        ),
+      ]
+)
 const grossMonthlyIncome = computed(() =>
   incomeSources.value.reduce((acc, s) => acc + (Number(s.amount) || 0), 0)
 )
@@ -249,15 +255,17 @@ const cashCoveredPercent = computed(() =>
         <div>
           <LineItemEditor v-model="incomeSources" title="Gross monthly income" placeholder="e.g. Salary, Spouse salary" />
           <p class="text-xs text-base-content/60 mt-1">
-            Pre-tax/gross, not take-home — add a row per income source if there's more than one;
-            they're summed for the calculation below.
-            <template v-if="settings.affordabilityDefaults.grossMonthlyIncome != null">
-              The first row defaulted from Settings → Affordability Defaults.
+            Pre-tax/gross, not take-home — one row per earner, summed for DTI calculations.
+            <template v-if="settings.affordabilityDefaults.grossIncomeSources?.length">
+              Pre-filled from Settings → Affordability Defaults.
+            </template>
+            <template v-else-if="settings.affordabilityDefaults.grossMonthlyIncome != null">
+              Defaulted from Settings → Affordability Defaults — consider adding named sources
+              per earner in <RouterLink to="/settings" class="link link-primary">Settings</RouterLink>.
             </template>
             <template v-else>
-              The first row defaulted from your logged income, which may not be gross — set a
-              precise value in <RouterLink to="/settings" class="link link-primary">Settings</RouterLink>
-              so it's right every time.
+              Estimated from logged income, which may not be gross — set precise values in
+              <RouterLink to="/settings" class="link link-primary">Settings</RouterLink> so it's right every time.
             </template>
           </p>
         </div>

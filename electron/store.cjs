@@ -5,7 +5,8 @@ const { app } = require('electron')
 const DATA_FILE_NAME = 'data.json'
 const DEFAULT_SETTINGS = {
   trailingAverageMonths: 6,
-  theme: 'helm',
+  // 'ledger' (light) or 'ledger-dark'.
+  theme: 'ledger',
   // Affordability-calculator defaults (Settings → Affordability Defaults).
   // grossMonthlyIncome is intentionally separate from anything derived
   // from logged snapshot income — that figure is whatever actually lands
@@ -13,7 +14,13 @@ const DEFAULT_SETTINGS = {
   // deductions or automatic transfers (401k, a Roth contribution taken
   // before the paycheck even hits checking, etc.), so it's not a reliable
   // stand-in for gross/pre-tax income.
+  // grossMonthlyIncome kept for backwards compat — superseded by
+  // grossIncomeSources when that array is non-empty.
   grossMonthlyIncome: null,
+  // Named gross income sources for the affordability calculator.
+  // Allows multiple earners (e.g. Riley + Katie) to be stored separately
+  // so the calculator pre-populates with one row per person.
+  grossIncomeSources: [],
   defaultMortgageRatePercent: null,
   defaultLoanTermYears: null,
   defaultPropertyTaxRatePercent: null,
