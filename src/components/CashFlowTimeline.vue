@@ -15,6 +15,13 @@ import { useFinanceStore } from '../stores/financeStore'
 import { useSettingsStore } from '../stores/settingsStore'
 import { useCreditCardStore } from '../stores/creditCardStore'
 import { currentMonthKey, shiftMonthKey, formatCurrency, formatMonthLabel } from '../utils/format'
+import {
+  cardPaymentInfo as _cardPaymentInfo,
+  getItemsForMonth as _getItemsForMonth,
+  simulateMonth,
+  UNDATED_INCOME_DEFAULT_DAY,
+  WHAT_IF_SHIFT,
+} from '../composables/useTimelineSimulation'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Filler)
 
@@ -98,204 +105,12 @@ const openingBalanceIsProjected = computed(() =>
   loggedOpeningBalance.value === null && projectedOpeningBalance.value !== null
 )
 
-// ── Card payment resolution ───────────────────────────────
-// Returns { amount, day, month } for where a card's auto-pay should land
-// on the timeline for a given display month.
-//
-// Cash-basis model: the payment clears in the month/day it actually
-// settled, not necessarily the statementDueDay. Priority:
-//   1. settlementDate on last month's balance record (user-reconciled)
-//   2. statementDueDay on the card (expected, may be in this or next month)
-//   3. trailing average amount, due day as day (projection)
-//
-// Month spillover: if settlementDate falls in a different month than
-// expected (e.g. due June 30th but settled July 2nd), the payment is
-// placed in that actual month instead.
-function cardPaymentInfo(cardId, card, monthKey) {
-  const prevMonth = shiftMonthKey(monthKey, -1)
-  const prevRecord = cards.balanceRecordForCardMonth(cardId, prevMonth)
-  const amount = prevRecord?.amount ?? cards.cardsWithStats.find(cs => cs.card.id === cardId)?.average ?? 0
+// Thin wrappers that bind the local store instances to the composable fns.
+const cardPaymentInfo  = (cardId, card, monthKey) => _cardPaymentInfo(cardId, card, monthKey, cards)
 
-  // If a reconciled settlement date exists, use it exactly
-  if (prevRecord?.settlementDate) {
-    const [sYear, sMonth, sDay] = prevRecord.settlementDate.split('-').map(Number)
-    const settlementMonthKey = `${sYear}-${String(sMonth).padStart(2, '0')}`
-    return { amount, day: sDay, month: settlementMonthKey }
-  }
+const getItemsForMonth = (monthKey) =>
+  _getItemsForMonth(monthKey, { financeStore: finance, cardsStore: cards })
 
-  // Fall back to statementDueDay — payment expected in monthKey
-  const dueDay = card.statementDueDay
-  if (dueDay) return { amount, day: dueDay, month: monthKey }
-
-  return null
-}
-
-// ── Items for a given month ───────────────────────────────
-// Logged months use snapshot actuals. Unlogged months use recurring
-// items from the last logged snapshot — all income items carry forward,
-// only expense items marked recurring: true do. Cards with a
-// statementDueDay are always reconciled so their payment lands as a
-// step change on the right day rather than disappearing into daily burn.
-function getItemsForMonth(monthKey) {
-  let income   = []
-  let expenses = []
-
-  // Use sortedSnapshots (all months) rather than actualSnapshots (≤ current
-  // month) so that manually saved future-month entries — e.g. an August
-  // snapshot where the user changed rent to $1,950 — are reflected in the
-  // timeline instead of silently falling back to the recurring projection.
-  const snap = finance.sortedSnapshots.find((s) => s.month === monthKey)
-  if (snap) {
-    income   = (snap.incomeItems  || []).map((i) => ({ ...i, itemType: 'income'  }))
-    expenses = (snap.expenseItems || []).map((i) => ({ ...i, itemType: 'expense' }))
-  } else {
-    // Unlogged: project from recurring items in the last logged snapshot
-    const { incomeItems, expenseItems } = finance.recurringProjection
-    income   = incomeItems .map((i) => ({ ...i, itemType: 'income'  }))
-    expenses = expenseItems.map((i) => ({ ...i, itemType: 'expense' }))
-  }
-
-  // ── Card auto-pay injection ──────────────────────────────
-  // Card balances are tracked separately from snapshot expense items —
-  // individual Venmo/Apple Cash entries in expenses are discrete
-  // transactions, not the auto-pay itself. Always inject the auto-pay
-  // as an explicitly dated expense so it lands on the correct day.
-  //
-  // For logged months: amount comes from last month's recorded balance.
-  // For unlogged months: amount falls back to trailing average.
-  // Spill-in: if settlementDate crossed into this month from the prior
-  //   expected month, inject it here instead.
-
-  for (const card of cards.cards) {
-    if (!card.statementDueDay) continue
-
-    // Normal path: auto-pay expected in monthKey
-    const info = cardPaymentInfo(card.id, card, monthKey)
-    if (info && info.month === monthKey && info.amount > 0) {
-      expenses.push({
-        id:         `_card_${card.id}`,
-        label:      `${card.name} auto-pay`,
-        amount:     info.amount,
-        itemType:   'expense',
-        dayOfMonth: info.day,
-      })
-      continue
-    }
-
-    // Spill-in: settlement crossed from last month into this month
-    const prevInfo = cardPaymentInfo(card.id, card, shiftMonthKey(monthKey, -1))
-    if (prevInfo && prevInfo.month === monthKey && prevInfo.amount > 0) {
-      expenses.push({
-        id:         `_card_spill_${card.id}`,
-        label:      `${card.name} auto-pay`,
-        amount:     prevInfo.amount,
-        itemType:   'expense',
-        dayOfMonth: prevInfo.day,
-      })
-    }
-  }
-
-  return [...income, ...expenses]
-}
-
-// ── Core simulation ───────────────────────────────────────
-// opts:
-//   undatedIncomeDay  — override default day-15 assumption for undated income
-//   incomeShift       — days to shift dated income items (positive = later)
-//   expenseShift      — days to shift dated expense items (negative = earlier)
-const UNDATED_INCOME_DEFAULT_DAY = 15
-const WHAT_IF_SHIFT = 3
-
-function simulateMonth(monthKey, startBalance, rawItems, opts = {}) {
-  const {
-    undatedIncomeDay = UNDATED_INCOME_DEFAULT_DAY,
-    incomeShift      = 0,
-    expenseShift     = 0,
-  } = opts
-
-  const [y, m] = monthKey.split('-').map(Number)
-  const days   = new Date(y, m, 0).getDate()
-
-  const hasDaySet = (item) => Number.isInteger(item.dayOfMonth) && item.dayOfMonth >= 1
-
-  // Apply timing shifts for what-if scenarios before bucketing
-  const items = rawItems.map((item) => {
-    if (!hasDaySet(item)) return item
-    if (item.itemType === 'income'  && incomeShift)  return { ...item, dayOfMonth: Math.min(Math.max(1, item.dayOfMonth + incomeShift),  28) }
-    if (item.itemType === 'expense' && expenseShift) return { ...item, dayOfMonth: Math.min(Math.max(1, item.dayOfMonth + expenseShift), days) }
-    return item
-  })
-
-  const datedIncome    = items.filter((i) => i.itemType === 'income'  &&  hasDaySet(i))
-  const datedExpenses  = items.filter((i) => i.itemType === 'expense' &&  hasDaySet(i))
-  const undatedIncome  = items.filter((i) => i.itemType === 'income'  && !hasDaySet(i))
-  const undatedExpenses= items.filter((i) => i.itemType === 'expense' && !hasDaySet(i))
-
-  const totalUndatedIncome  = undatedIncome .reduce((a, i) => a + (Number(i.amount) || 0), 0)
-  const totalUndatedExpense = undatedExpenses.reduce((a, i) => a + (Number(i.amount) || 0), 0)
-  const dailyBurn = totalUndatedExpense / days
-
-  let running = startBalance
-  const balances = []
-  const events   = [] // per-day list of items that affected the balance
-  let lowestBalance = running
-  let lowestDay     = null
-  let overdraftDay  = null
-
-  for (let day = 1; day <= days; day++) {
-    const dayEvents = []
-
-    // Income first (optimistic same-day ordering)
-    for (const item of datedIncome) {
-      if (Math.min(item.dayOfMonth, days) === day) {
-        running += Number(item.amount) || 0
-        dayEvents.push({ label: item.label, amount: Number(item.amount) || 0, itemType: 'income' })
-      }
-    }
-    if (day === Math.min(undatedIncomeDay, days) && totalUndatedIncome > 0) {
-      running += totalUndatedIncome
-      const label = undatedIncome.length === 1
-        ? undatedIncome[0].label
-        : `${undatedIncome.length} income items (undated)`
-      dayEvents.push({ label, amount: totalUndatedIncome, itemType: 'income', isGrouped: undatedIncome.length > 1 })
-    }
-
-    // Expenses
-    for (const item of datedExpenses) {
-      if (Math.min(item.dayOfMonth, days) === day) {
-        running -= Number(item.amount) || 0
-        dayEvents.push({ label: item.label, amount: Number(item.amount) || 0, itemType: 'expense' })
-      }
-    }
-    if (dailyBurn > 1) {
-      running -= dailyBurn
-      dayEvents.push({ label: 'Daily spend (spread)', amount: dailyBurn, itemType: 'expense', isDailyBurn: true })
-    }
-
-    const rounded = Math.round(running)
-    balances.push(rounded)
-    events.push(dayEvents)
-
-    if (rounded < lowestBalance) { lowestBalance = rounded; lowestDay = day }
-    if (overdraftDay === null && rounded < 0) overdraftDay = day
-  }
-
-  return {
-    monthKey,
-    daysInMonth: days,
-    openingBalance: startBalance,
-    balances,
-    events,
-    lowestBalance,
-    lowestDay,
-    overdraftDay,
-    hasOverdraft:    overdraftDay !== null,
-    hasLowBalance:   overdraftDay === null && lowestBalance < settings.lowBalanceThreshold,
-    closingBalance:  balances.at(-1) ?? startBalance,
-    undatedItemCount: undatedIncome.length + undatedExpenses.length,
-    datedItemCount:   datedIncome.length  + datedExpenses.length,
-  }
-}
 
 // ── Multi-month chain ─────────────────────────────────────
 const monthSimulations = computed(() => {

@@ -3,6 +3,7 @@ import { computed, ref, nextTick } from 'vue'
 import { useFinanceStore } from '../stores/financeStore'
 import SnapshotForm from '../components/SnapshotForm.vue'
 import CashFlowTimeline from '../components/CashFlowTimeline.vue'
+import ScenarioSandbox  from '../components/ScenarioSandbox.vue'
 import VariableSpendingWidget from '../components/VariableSpendingWidget.vue'
 import { currentMonthKey, shiftMonthKey } from '../utils/format'
 import { formatMonthLong } from '../utils/format'
@@ -11,6 +12,7 @@ const finance = useFinanceStore()
 
 const currentMonth   = currentMonthKey()
 const selectedMonth  = ref(currentMonth)
+const showSandbox    = ref(false)
 const pickingMonth   = ref(false)
 const monthInputRef  = ref(null)
 
@@ -101,7 +103,23 @@ function onMonthPick(e) {
       </div>
     </div>
 
-    <CashFlowTimeline :month="selectedMonth" />
+    <!-- Timeline / Sandbox toggle -->
+    <div class="flex rounded-lg border border-base-300 bg-base-200/60 overflow-hidden">
+      <button
+        class="flex-1 py-1.5 text-xs font-medium transition-colors"
+        :class="!showSandbox ? 'bg-base-100 text-base-content' : 'text-base-content/50 hover:text-base-content/70'"
+        @click="showSandbox = false">
+        Cash Flow Timeline
+      </button>
+      <button
+        class="flex-1 py-1.5 text-xs font-medium transition-colors"
+        :class="showSandbox ? 'bg-base-100 text-base-content' : 'text-base-content/50 hover:text-base-content/70'"
+        @click="showSandbox = true">
+        Forecast Sandbox
+      </button>
+    </div>
+    <CashFlowTimeline v-if="!showSandbox" :month="selectedMonth" />
+    <ScenarioSandbox  v-else              :month="selectedMonth" />
 
     <VariableSpendingWidget :month="selectedMonth" />
 

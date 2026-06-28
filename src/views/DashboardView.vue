@@ -11,7 +11,8 @@ import CategoryTrendsChart from '../components/CategoryTrendsChart.vue'
 import IncomeBreakdownChart from '../components/IncomeBreakdownChart.vue'
 import CardSpendWidget from '../components/CardSpendWidget.vue'
 import DiagnosticCard from '../components/DiagnosticCard.vue'
-import CashFlowTimeline from '../components/CashFlowTimeline.vue'
+import CashFlowTimeline   from '../components/CashFlowTimeline.vue'
+import ScenarioSandbox    from '../components/ScenarioSandbox.vue'
 import BandwidthWidget from '../components/BandwidthWidget.vue'
 import EmptyState from '../components/EmptyState.vue'
 import SetupChecklist from '../components/SetupChecklist.vue'
@@ -133,7 +134,7 @@ const breakdown = computed(() => {
 </script>
 
 <template>
-  <div class="space-y-8 w-full">
+  <div class="space-y-8">
     <div>
       <h1 class="font-display text-2xl font-semibold">Dashboard</h1>
       <p class="text-sm text-base-content/60">Your financial baseline at a glance.</p>
@@ -179,6 +180,9 @@ const breakdown = computed(() => {
       </div>
 
       <CashFlowTimeline />
+
+      <!-- ── Forecast Sandbox ── -->
+      <ScenarioSandbox />
 
       <CardSpendWidget />
 

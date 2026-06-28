@@ -357,7 +357,7 @@ async function save() {
     </div>
 
     <!-- Sticky save footer -->
-    <div class="sticky bottom-0 z-10 -mx-1 px-1 pb-1 pt-3 bg-gradient-to-t from-base-200 via-base-200/95 to-transparent pointer-events-none">
+    <div class="sticky bottom-0 z-10 -mx-1 px-1 pb-1 pt-3 pointer-events-none">
       <div class="rounded-xl border border-base-300 bg-base-200 shadow-lg px-4 py-3 flex items-center justify-between gap-3 pointer-events-auto">
         <div class="text-xs text-base-content/40 leading-snug">
           <template v-if="isDirty">
