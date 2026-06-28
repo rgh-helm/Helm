@@ -2,7 +2,8 @@
 import { computed, ref } from 'vue'
 import { useFinanceStore } from '../stores/financeStore'
 import { useCreditCardStore } from '../stores/creditCardStore'
-import { useSettingsStore } from '../stores/settingsStore'
+import { useSettingsStore }  from '../stores/settingsStore'
+import { useAccountsStore }  from '../stores/accountsStore'
 import { formatCurrency } from '../utils/format'
 import EmptyState from './EmptyState.vue'
 import InfoTip from './InfoTip.vue'
@@ -11,12 +12,13 @@ const props = defineProps({
   showPerCard: { type: Boolean, default: false },
 })
 
-const finance  = useFinanceStore()
+const finance   = useFinanceStore()
+const accounts  = useAccountsStore()
 const cards    = useCreditCardStore()
 const settings = useSettingsStore()
 
 // ── Primary-only toggle ───────────────────────────────────
-const primaryOnly = ref(false)
+const primaryOnly = ref(true)
 const hasPrimaryFilter = computed(() => settings.primaryIncomeLabels.length > 0)
 
 // ── Income basis ──────────────────────────────────────────
@@ -33,6 +35,13 @@ const avgNonRecurring  = computed(() => finance.avgNonRecurring)
 const actualMonthCount = computed(() =>
   Math.min(settings.trailingAverageMonths, finance.actualSnapshots.length)
 )
+
+// Low sample size warning — avgs based on fewer than 6 months are flagged
+const lowSampleWarning = computed(() => {
+  const n = actualMonthCount.value
+  if (n >= 6) return null
+  return `Averages based on only ${n} month${n === 1 ? '' : 's'} of data — more history will improve accuracy.`
+})
 
 // ── Suggested CC ceiling ──────────────────────────────────
 // In Primary Only mode we use the store's precomputed value (primary income
@@ -56,6 +65,104 @@ const currentCCBudgetTotal = computed(() =>
 
 const avgCCSpendTotal = computed(() =>
   cards.cardsWithStats.reduce((a, cs) => a + (cs.average || 0), 0)
+)
+
+// ── This month's expense breakdown ────────────────────────
+// Splits the current month's logged expenses into four groups:
+//   Debts       — items with accountId linking to a debt account
+//   Recurring   — recurring: true, no accountId (rent, tithing, etc.)
+//   Variable    — neither recurring nor accountId (day-to-day spend)
+//   Credit Cards — actual logged card balance for the month when available,
+//                  falls back to trailing avg (marked as estimated)
+const currentMonthSnapshot = computed(() =>
+  finance.actualSnapshots.at(-1) ?? null
+)
+
+const debtAccountIds = computed(() =>
+  new Set(accounts.accounts.filter((a) => a.kind === 'debt').map((a) => a.id))
+)
+
+const currentMonthCCTotal = computed(() => {
+  const snap = currentMonthSnapshot.value
+  if (!snap) return { amount: avgCCSpendTotal.value, isEstimate: true }
+  const logged = cards.totalForMonth(snap.month)
+  if (logged > 0) return { amount: logged, isEstimate: false }
+  return { amount: avgCCSpendTotal.value, isEstimate: true }
+})
+
+const currentMonthBreakdown = computed(() => {
+  const snap = currentMonthSnapshot.value
+  if (!snap) return null
+
+  let debts = 0, recurring = 0, variable = 0
+  for (const e of (snap.expenseItems || [])) {
+    const amt = Number(e.amount) || 0
+    if (e.accountId && debtAccountIds.value.has(e.accountId)) debts += amt
+    else if (e.recurring) recurring += amt
+    else variable += amt
+  }
+  const { amount: creditCards, isEstimate: ccIsEstimate } = currentMonthCCTotal.value
+  const total = debts + recurring + variable + creditCards
+
+  return { debts, recurring, variable, creditCards, ccIsEstimate, total }
+})
+
+const currentMonthIncome = computed(() => {
+  const snap = currentMonthSnapshot.value
+  if (!snap) return null
+  return (snap.incomeItems || []).reduce((a, i) => a + (Number(i.amount) || 0), 0)
+})
+
+// ── Scenario columns ───────────────────────────────────────
+// "Right now" — this month's actual income vs actual expenses, broken down
+const colRightNow = computed(() => {
+  if (!currentMonthBreakdown.value || currentMonthIncome.value === null) return null
+  const income = currentMonthIncome.value
+  const expenses = currentMonthBreakdown.value.total
+  return {
+    income, expenses, net: income - expenses,
+    rawBreakdown: currentMonthBreakdown.value,
+    label: 'Right now', sublabel: 'This month actual',
+  }
+})
+
+// "Combined income" — full expense breakdown vs this month's actual combined income
+const colCombined = computed(() => {
+  if (!currentMonthBreakdown.value || currentMonthIncome.value === null) return null
+  const income = currentMonthIncome.value
+  return {
+    income,
+    breakdown: currentMonthBreakdown.value,
+    net: income - currentMonthBreakdown.value.total,
+    label: 'Combined income',
+    sublabel: 'Current reality',
+  }
+})
+
+// "Primary income goal" — same actual income but filtered to primary sources only;
+// secondary shown as the saveable amount
+const colPrimary = computed(() => {
+  if (!currentMonthBreakdown.value || currentMonthIncome.value === null || !hasPrimaryFilter.value) return null
+  const snap = currentMonthSnapshot.value
+  const primaryLabels = new Set(
+    (settings.primaryIncomeLabels || []).map((l) => l.toLowerCase())
+  )
+  const income = (snap?.incomeItems || [])
+    .filter((i) => primaryLabels.has((i.label || '').toLowerCase()))
+    .reduce((a, i) => a + (Number(i.amount) || 0), 0)
+  const saveable = currentMonthIncome.value - income
+  return {
+    income,
+    breakdown: currentMonthBreakdown.value,
+    net: income - currentMonthBreakdown.value.total,
+    saveable: saveable > 0 ? saveable : null,
+    label: 'Primary only',
+    sublabel: 'Single-income goal',
+  }
+})
+
+const scenarioColumns = computed(() =>
+  [colRightNow.value, colCombined.value, colPrimary.value].filter(Boolean)
 )
 
 // ── HYSA opportunity ──────────────────────────────────────
@@ -167,6 +274,142 @@ const perCardSuggestions = computed(() => {
           Fixed obligations and variable expenses already exceed average income — current CC
           spending is drawing from reserves.
         </p>
+      </div>
+
+      <!-- ── Low sample warning ── -->
+      <div v-if="lowSampleWarning"
+        class="flex items-start gap-2 rounded-lg border border-warning/25 bg-warning/5 px-3 py-2 text-[11px] text-warning/80">
+        <span class="mt-0.5 shrink-0">⚠</span>
+        <span>{{ lowSampleWarning }}</span>
+      </div>
+
+      <!-- ── This month vs income scenarios ── -->
+      <div v-if="scenarioColumns.length" class="space-y-2">
+        <p class="text-xs font-medium text-base-content/40 uppercase tracking-wide">
+          This month vs income scenarios
+          <span class="normal-case font-normal text-base-content/30 ml-1">logged + avg card spend</span>
+        </p>
+        <div class="grid gap-3" :class="scenarioColumns.length === 3 ? 'grid-cols-3' : 'grid-cols-2'">
+          <div
+            v-for="col in scenarioColumns"
+            :key="col.label"
+            class="rounded-lg border p-3 flex flex-col gap-2"
+            :class="col.net >= 0 ? 'border-success/25 bg-success/5' : 'border-error/25 bg-error/5'"
+          >
+            <!-- Column header -->
+            <div class="pb-1 border-b border-base-300">
+              <p class="text-[11px] font-semibold text-base-content/70 leading-tight">{{ col.label }}</p>
+              <p class="text-[10px] text-base-content/35 leading-tight">{{ col.sublabel }}</p>
+            </div>
+
+            <!-- Income -->
+            <div class="flex items-center justify-between gap-1">
+              <span class="text-[10px] text-base-content/45">Income</span>
+              <span class="font-mono tabular-nums text-xs font-medium text-base-content/80">
+                {{ formatCurrency(col.income) }}
+              </span>
+            </div>
+
+            <!-- Expense breakdown (middle + right cols have breakdown) -->
+            <template v-if="col.breakdown">
+              <div class="space-y-1 border-t border-base-300/60 pt-1">
+                <div class="flex items-center justify-between gap-1">
+                  <span class="text-[10px] text-base-content/40 flex items-center gap-1">
+                    <span class="inline-block w-1.5 h-1.5 rounded-full bg-error/50"></span>Debts
+                  </span>
+                  <span class="font-mono tabular-nums text-[10px] text-base-content/60">
+                    −{{ formatCurrency(col.breakdown.debts) }}
+                  </span>
+                </div>
+                <div class="flex items-center justify-between gap-1">
+                  <span class="text-[10px] text-base-content/40 flex items-center gap-1">
+                    <span class="inline-block w-1.5 h-1.5 rounded-full bg-warning/50"></span>Recurring
+                  </span>
+                  <span class="font-mono tabular-nums text-[10px] text-base-content/60">
+                    −{{ formatCurrency(col.breakdown.recurring) }}
+                  </span>
+                </div>
+                <div class="flex items-center justify-between gap-1">
+                  <span class="text-[10px] text-base-content/40 flex items-center gap-1">
+                    <span class="inline-block w-1.5 h-1.5 rounded-full bg-info/50"></span>Variable
+                  </span>
+                  <span class="font-mono tabular-nums text-[10px] text-base-content/60">
+                    −{{ formatCurrency(col.breakdown.variable) }}
+                  </span>
+                </div>
+                <div class="flex items-center justify-between gap-1">
+                  <span class="text-[10px] text-base-content/40 flex items-center gap-1">
+                    <span class="inline-block w-1.5 h-1.5 rounded-full bg-accent/50"></span>
+                    Credit cards
+                    <span v-if="col.breakdown.ccIsEstimate" class="text-base-content/25">~avg</span>
+                  </span>
+                  <span class="font-mono tabular-nums text-[10px] text-base-content/60">
+                    −{{ formatCurrency(col.breakdown.creditCards) }}
+                  </span>
+                </div>
+              </div>
+            </template>
+
+            <!-- Simple expense total (right now col — no breakdown prop) -->
+            <template v-else>
+              <div class="space-y-1 border-t border-base-300/60 pt-1">
+                <div class="flex items-center justify-between gap-1">
+                  <span class="text-[10px] text-base-content/40 flex items-center gap-1">
+                    <span class="inline-block w-1.5 h-1.5 rounded-full bg-error/50"></span>Debts
+                  </span>
+                  <span class="font-mono tabular-nums text-[10px] text-base-content/60">
+                    −{{ formatCurrency(col.rawBreakdown.debts) }}
+                  </span>
+                </div>
+                <div class="flex items-center justify-between gap-1">
+                  <span class="text-[10px] text-base-content/40 flex items-center gap-1">
+                    <span class="inline-block w-1.5 h-1.5 rounded-full bg-warning/50"></span>Recurring
+                  </span>
+                  <span class="font-mono tabular-nums text-[10px] text-base-content/60">
+                    −{{ formatCurrency(col.rawBreakdown.recurring) }}
+                  </span>
+                </div>
+                <div class="flex items-center justify-between gap-1">
+                  <span class="text-[10px] text-base-content/40 flex items-center gap-1">
+                    <span class="inline-block w-1.5 h-1.5 rounded-full bg-info/50"></span>Variable
+                  </span>
+                  <span class="font-mono tabular-nums text-[10px] text-base-content/60">
+                    −{{ formatCurrency(col.rawBreakdown.variable) }}
+                  </span>
+                </div>
+                <div class="flex items-center justify-between gap-1">
+                  <span class="text-[10px] text-base-content/40 flex items-center gap-1">
+                    <span class="inline-block w-1.5 h-1.5 rounded-full bg-accent/50"></span>
+                    Credit cards
+                    <span v-if="col.rawBreakdown.ccIsEstimate" class="text-base-content/25">~avg</span>
+                  </span>
+                  <span class="font-mono tabular-nums text-[10px] text-base-content/60">
+                    −{{ formatCurrency(col.rawBreakdown.creditCards) }}
+                  </span>
+                </div>
+              </div>
+            </template>
+
+            <!-- Net -->
+            <div class="mt-auto border-t border-base-300 pt-2 flex items-center justify-between">
+              <span class="text-[10px] font-medium text-base-content/50">Net</span>
+              <span
+                class="font-mono tabular-nums text-sm font-bold"
+                :class="col.net >= 0 ? 'text-success' : 'text-error'"
+              >
+                {{ col.net >= 0 ? '+' : '' }}{{ formatCurrency(col.net) }}
+              </span>
+            </div>
+
+            <!-- Secondary → savings callout (primary col only) -->
+            <div v-if="col.saveable" class="rounded bg-success/10 px-2 py-1.5 -mt-1">
+              <p class="text-[10px] text-success/70 font-medium">Secondary → savings</p>
+              <p class="font-mono tabular-nums text-xs font-bold text-success">
+                {{ formatCurrency(col.saveable) }}/mo
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- ── Secondary income callout (Primary Only mode) ── -->
