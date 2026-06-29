@@ -1,7 +1,7 @@
 {
   "name": "helm",
   "private": true,
-  "version": "0.51.4",
+  "version": "0.51.5",
   "description": "A local-only personal finance tracker for house savings and emergency fund goals.",
   "author": "Riley Hansen <gridironhero@gmail.com>",
   "homepage": "github.com",
