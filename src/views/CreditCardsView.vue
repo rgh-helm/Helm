@@ -12,7 +12,7 @@ import { formatCurrency, currentMonthKey } from '../utils/format'
 const cards = useCreditCardStore()
 const showForm = ref(false)
 const editing = ref(null)
-const activeTab = ref('cards') // 'cards' | 'categories'
+const activeTab = ref('cards')
 
 function startCreate() {
   editing.value = null
@@ -30,16 +30,11 @@ function onSaved() {
 }
 
 const thisMonth = currentMonthKey()
-
-// '' means "All time" — otherwise one of cards.loggedMonths.
 const scopeMonth = ref('')
 
 const collectiveBreakdown = computed(() => cards.allCardsCategoryBreakdown(scopeMonth.value || null))
 const collectiveTotal = computed(() => collectiveBreakdown.value.reduce((acc, c) => acc + c.amount, 0))
 
-// Only cards with at least one balance in the selected scope — a card
-// with nothing logged for "May" (or ever, for "All time") just adds noise
-// to a side-by-side comparison.
 const cardsWithSpendInScope = computed(() =>
   cards.cards
     .map((card) => ({ card, breakdown: cards.cardCategoryBreakdown(card.id, scopeMonth.value || null) }))
@@ -49,7 +44,10 @@ const cardsWithSpendInScope = computed(() =>
 
 <template>
   <div class="space-y-6">
-    <div class="flex items-center justify-between">      <div>
+
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+      <div>
         <h1 class="font-display text-2xl font-semibold">Credit Cards</h1>
         <p class="text-sm text-base-content/60">
           Since these are paid off monthly, balances are tracked as spending — not debt — and roll
@@ -59,46 +57,37 @@ const cardsWithSpendInScope = computed(() =>
       <button type="button" class="btn btn-primary btn-sm" @click="startCreate">+ Add card</button>
     </div>
 
+    <!-- Add/edit form -->
     <div v-if="showForm" class="rounded-lg border border-primary/40 bg-base-200 p-5 max-w-xl">
       <h2 class="font-display font-semibold mb-3">{{ editing ? 'Edit card' : 'New card' }}</h2>
       <CreditCardForm :initial="editing" @saved="onSaved" @cancel="showForm = false" />
     </div>
 
-    <BandwidthWidget :showPerCard="true" />
-
-    <CardSpendWidget />
-
-    <div
-      v-if="!cards.cards.length && !showForm"
-      class="rounded-lg border border-dashed border-base-300 p-10 text-center"
-    >
+    <div v-if="!cards.cards.length && !showForm" class="rounded-lg border border-dashed border-base-300 p-10 text-center">
       <p class="text-base-content/70 mb-3">No cards yet. Add one to start tracking spend by card.</p>
       <button type="button" class="btn btn-primary btn-sm" @click="startCreate">Add a card</button>
     </div>
 
     <template v-else>
       <div role="tablist" class="tabs tabs-boxed w-fit">
-        <button
-          type="button"
-          role="tab"
-          class="tab"
-          :class="{ 'tab-active': activeTab === 'cards' }"
-          @click="activeTab = 'cards'"
-        >
-          Cards
-        </button>
-        <button
-          type="button"
-          role="tab"
-          class="tab"
-          :class="{ 'tab-active': activeTab === 'categories' }"
-          @click="activeTab = 'categories'"
-        >
-          Categories
-        </button>
+        <button type="button" role="tab" class="tab" :class="{ 'tab-active': activeTab === 'cards' }" @click="activeTab = 'cards'">Cards</button>
+        <button type="button" role="tab" class="tab" :class="{ 'tab-active': activeTab === 'categories' }" @click="activeTab = 'categories'">Categories</button>
       </div>
 
       <template v-if="activeTab === 'cards'">
+
+        <!-- 1. Cards this month -->
+        <CardSpendWidget />
+
+        <!-- 2. Credit card rows -->
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <CreditCardRow v-for="stats in cards.cardsWithStats" :key="stats.card.id" :stats="stats" @edit="startEdit" />
+        </div>
+
+        <!-- 3. Bandwidth -->
+        <BandwidthWidget :showPerCard="true" />
+
+        <!-- 4. Spending over time -->
         <div class="rounded-lg border border-base-300 bg-base-200 p-5">
           <div class="flex items-baseline justify-between mb-3">
             <h2 class="font-display font-semibold">Total spending over time</h2>
@@ -109,9 +98,6 @@ const cardsWithSpendInScope = computed(() =>
           <CardSpendChart :history="cards.monthlyTotals" />
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-          <CreditCardRow v-for="stats in cards.cardsWithStats" :key="stats.card.id" :stats="stats" @edit="startEdit" />
-        </div>
       </template>
 
       <template v-else>
@@ -138,7 +124,7 @@ const cardsWithSpendInScope = computed(() =>
 
           <div>
             <h2 class="font-display font-semibold mb-3">By card</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               <div
                 v-for="{ card, breakdown } in cardsWithSpendInScope"
                 :key="card.id"
@@ -157,5 +143,6 @@ const cardsWithSpendInScope = computed(() =>
         </template>
       </template>
     </template>
+
   </div>
 </template>
