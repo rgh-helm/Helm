@@ -1,7 +1,7 @@
 {
   "name": "helm",
   "private": true,
-  "version": "0.51.1",
+  "version": "0.51.4",
   "description": "A local-only personal finance tracker for house savings and emergency fund goals.",
   "author": "Riley Hansen <gridironhero@gmail.com>",
   "homepage": "github.com",
@@ -37,9 +37,10 @@
     "concurrently": "^9.0.1",
     "daisyui": "^4.12.10",
     "electron": "^31.3.1",
-    "electron-builder": "^24.13.3",
+    "electron-builder": "^26.15.3",
     "png2icons": "^2.0.1",
     "postcss": "^8.4.41",
+    "sharp": "^0.35.2",
     "tailwindcss": "^3.4.10",
     "vite": "^5.4.2",
     "vitest": "^4.1.9",
@@ -48,7 +49,6 @@
   "build": {
     "appId": "com.usehelm.helm",
     "productName": "Helm",
-    "icon": "build/icons/icon",
     "files": [
       "dist/**/*",
       "electron/**/*"
@@ -61,12 +61,12 @@
         "deb"
       ],
       "category": "Office",
-      "icon": "build/icons"
+      "icon": "build/icons/icon.png"
     },
     "mac": {
       "target": "dmg",
       "category": "public.app-category.finance",
-      "icon": "build/icons/icon_1024.png"
+      "icon": "build/icons/mac/icon.png"
     },
     "win": {
       "target": "nsis",
