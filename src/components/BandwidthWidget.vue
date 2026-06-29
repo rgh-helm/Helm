@@ -197,7 +197,7 @@ const perCardSuggestions = computed(() => {
 </script>
 
 <template>
-  <div class="rounded-lg border border-base-300 bg-base-200 overflow-hidden">
+  <div class="rounded-lg border border-base-300 bg-base-200 overflow-hidden shadow-lg shadow-secondary/5">
 
     <!-- Header -->
     <div class="px-5 pt-5 pb-4 border-b border-base-300 flex items-center justify-between gap-3">

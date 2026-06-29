@@ -294,7 +294,7 @@ function labelForAdj(adj) {
 </script>
 
 <template>
-  <div class="rounded-lg border border-base-300 bg-base-200 p-5 space-y-4">
+  <div class="rounded-lg border border-base-300 bg-base-200 p-5 space-y-4 shadow-lg shadow-secondary/5">
 
     <!-- ── Header ── -->
     <div class="flex items-center justify-between gap-3 flex-wrap">

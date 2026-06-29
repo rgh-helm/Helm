@@ -137,7 +137,7 @@ function formatRemaining(remaining) {
 </script>
 
 <template>
-  <div class="rounded-lg border border-base-300 bg-base-200 p-5">
+  <div class="rounded-lg border border-base-300 bg-base-200 p-5 shadow-lg shadow-secondary/5">
 
     <!-- Header -->
     <div class="flex items-center justify-between mb-5">

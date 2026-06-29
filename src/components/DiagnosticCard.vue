@@ -200,7 +200,7 @@ function signedCurrency(v) {
 
 <template>
   <div
-    class="rounded-lg border border-base-300 bg-base-200 overflow-hidden"
+    class="rounded-lg border border-base-300 bg-base-200 overflow-hidden shadow-lg shadow-secondary/5"
     style="border-left: 4px solid oklch(var(--s))"
   >
     <div class="p-5">

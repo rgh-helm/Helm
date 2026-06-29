@@ -18,6 +18,7 @@ import EmptyState from '../components/EmptyState.vue'
 import SetupChecklist from '../components/SetupChecklist.vue'
 import NarrativeSummary from '../components/NarrativeSummary.vue'
 import { formatCurrency, formatPercent, formatMonthLabel, currentMonthKey, shiftMonthKey } from '../utils/format'
+import SankeyChart from '../components/SankeyChart.vue'
 
 const finance = useFinanceStore()
 const goals = useGoalsStore()
@@ -156,14 +157,16 @@ const breakdown = computed(() => {
 
       <DiagnosticCard />
 
+      <SankeyChart :month="finance.latestSnapshot?.month" />
+
       <BandwidthWidget />
 
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div class="rounded-lg border border-base-300 bg-base-200 p-4">
+        <div class="rounded-lg border border-base-300 bg-base-200 p-4 shadow-lg shadow-secondary/5">
           <p class="text-xs text-base-content/60">Net worth</p>
           <p class="font-mono tabular-nums text-2xl font-semibold">{{ formatCurrency(latest.netWorth) }}</p>
         </div>
-        <div class="rounded-lg border border-base-300 bg-base-200 p-4">
+        <div class="rounded-lg border border-base-300 bg-base-200 p-4 shadow-lg shadow-secondary/5">
           <p class="text-xs text-base-content/60">Non-retirement cash flow (last month)</p>
           <p
             class="font-mono tabular-nums text-2xl font-semibold"
@@ -173,7 +176,7 @@ const breakdown = computed(() => {
           </p>
           <p class="text-xs text-base-content/40 mt-1">Already net of your retirement transfer</p>
         </div>
-        <div class="rounded-lg border border-base-300 bg-base-200 p-4">
+        <div class="rounded-lg border border-base-300 bg-base-200 p-4 shadow-lg shadow-secondary/5">
           <p class="text-xs text-base-content/60">Avg monthly savings ({{ settings.trailingAverageMonths }}mo)</p>
           <p class="font-mono tabular-nums text-2xl font-semibold">{{ formatCurrency(finance.avgMonthlySavings) }}</p>
         </div>
