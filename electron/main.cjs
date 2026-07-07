@@ -163,8 +163,8 @@ ipcMain.handle('data:importBackup', async () => {
   try {
     const raw = fs.readFileSync(filePaths[0], 'utf-8')
     const payload = JSON.parse(raw)
-    store.restoreFromPayload(payload)
-    return { ok: true }
+    const { warnings } = store.restoreFromPayload(payload)
+    return { ok: true, warnings }
   } catch (err) {
     return { ok: false, error: err.message }
   }

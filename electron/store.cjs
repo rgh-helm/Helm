@@ -811,12 +811,24 @@ function getBackupPayload() {
   }
 }
 
+// Best-effort restore: the only hard requirement is that the file is
+// recognizably Helm/House-Savings-Planner data at all (snapshots +
+// scenarios arrays present, even if empty). Everything else is optional —
+// missing pieces fall back to sane defaults rather than rejecting the
+// whole file, with a plain-language warning collected for each fallback
+// so the caller (onboarding import, Settings import) can show the user
+// what was and wasn't found, instead of failing silently.
 function restoreFromPayload(payload) {
   if (!payload || !Array.isArray(payload.snapshots) || !Array.isArray(payload.scenarios)) {
     throw new Error('Invalid backup file format.')
   }
+  const warnings = []
+
   const creditCardsIn = Array.isArray(payload.creditCards) ? payload.creditCards : []
   const cardBalancesIn = Array.isArray(payload.cardBalances) ? payload.cardBalances : []
+  if (!Array.isArray(payload.creditCards)) {
+    warnings.push('No credit card data found in the file — starting with none.')
+  }
 
   const cardIdMap = new Map()
   const creditCards = creditCardsIn.map((c, i) => {
@@ -838,11 +850,17 @@ function restoreFromPayload(payload) {
   // Older backups won't have settings/categories — keep whatever's
   // currently set rather than resetting to defaults on import.
   const current = load()
+  if (!payload.settings) {
+    warnings.push('No settings found in the file — using the app\'s current defaults.')
+  }
   const settings = { ...DEFAULT_SETTINGS, ...(current.settings || {}), ...(payload.settings || {}) }
   const categories =
     Array.isArray(payload.categories) && payload.categories.length
       ? payload.categories.map((c, i) => ({ id: i + 1, name: c.name }))
       : current.categories
+  if (!Array.isArray(payload.categories) || !payload.categories.length) {
+    warnings.push('No categories found in the file — kept the starter categories.')
+  }
 
   let snapshots
   let accounts
@@ -879,6 +897,7 @@ function restoreFromPayload(payload) {
     // remapping the live app already does, and let the same migration
     // chain that runs on every normal load() promote everything below,
     // exactly as it would for a first load after upgrading.
+    warnings.push('This backup uses an older data format — accounts will be reconstructed automatically from monthly history.')
     const fundAccountsIn = Array.isArray(payload.fundAccounts) ? payload.fundAccounts : null
     const fundAccountIdMap = new Map()
     fundAccounts = fundAccountsIn
@@ -909,6 +928,9 @@ function restoreFromPayload(payload) {
         return { ...rest, id: i + 1 }
       })
     : []
+  if (!Array.isArray(payload.forecastItems)) {
+    warnings.push('No forecast items found in the file — starting with none.')
+  }
 
   // Same for income options — plain id remap, no foreign keys.
   const incomeOptions = Array.isArray(payload.incomeOptions)
@@ -917,6 +939,9 @@ function restoreFromPayload(payload) {
         return { ...rest, id: i + 1 }
       })
     : []
+  if (!Array.isArray(payload.incomeOptions)) {
+    warnings.push('No income source presets found in the file — starting with none.')
+  }
 
   cache = {
     version: 2,
@@ -935,6 +960,7 @@ function restoreFromPayload(payload) {
   migrateAssetFlagsToAccounts(cache)
   migrateToUnifiedAccounts(cache)
   persist()
+  return { warnings }
 }
 
 module.exports = {

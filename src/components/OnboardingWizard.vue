@@ -5,6 +5,9 @@ import { useSettingsStore } from '../stores/settingsStore'
 import { useCreditCardStore } from '../stores/creditCardStore'
 import { useAccountsStore } from '../stores/accountsStore'
 import { useIncomeOptionsStore } from '../stores/incomeOptionsStore'
+import { useFinanceStore } from '../stores/financeStore'
+import { useGoalsStore } from '../stores/goalsStore'
+import { useCategoriesStore } from '../stores/categoriesStore'
 import { uid } from '../utils/format'
 
 const emit = defineEmits(['done'])
@@ -13,6 +16,54 @@ const settings = useSettingsStore()
 const cards = useCreditCardStore()
 const accounts = useAccountsStore()
 const incomeOptions = useIncomeOptionsStore()
+const finance = useFinanceStore()
+const goals = useGoalsStore()
+const categoriesStore = useCategoriesStore()
+
+// ── Step 0: Import existing data (skips the rest of the wizard) ──
+// 'idle' | 'importing' | 'error' | 'done'
+const importStatus = ref('idle')
+const importError = ref('')
+const importWarnings = ref([])
+
+async function handleImportClick() {
+  importStatus.value = 'importing'
+  importError.value = ''
+  const result = await window.api.backup.import()
+  if (result.canceled) {
+    importStatus.value = 'idle'
+    return
+  }
+  if (!result.ok) {
+    importError.value = result.error || 'Something went wrong reading that file.'
+    importStatus.value = 'error'
+    return
+  }
+  // The IPC layer already wrote the imported data to data.json — reload
+  // every store from it so the renderer's Pinia state actually reflects
+  // it (same reload set App.vue does on boot, and Settings does after a
+  // manual restore).
+  await Promise.all([
+    finance.loadSnapshots(),
+    cards.loadAll(),
+    settings.loadSettings(),
+    categoriesStore.loadCategories(),
+    incomeOptions.loadIncomeOptions(),
+    accounts.loadAll(),
+  ])
+  await goals.loadScenarios()
+  // Force this regardless of what the imported file's settings said —
+  // an import means there's real history to look at, never the
+  // fresh-start wizard.
+  await settings.setOnboardingComplete(true)
+  importWarnings.value = result.warnings || []
+  importStatus.value = 'done'
+}
+
+function completeImport() {
+  emit('done')
+  router.push('/')
+}
 
 // ── Step index ────────────────────────────────────────────
 const step = ref(0)
@@ -42,7 +93,7 @@ async function saveIncomeStep() {
   }
   // Also register as known income label options
   for (const row of filledIncomeRows.value) {
-    await incomeOptions.addIncomeOption(row.label.trim()).catch(() => {})
+    await incomeOptions.addIncomeOption(row.label.trim()).catch(() => { })
   }
   next()
 }
@@ -120,14 +171,13 @@ async function finish() {
   <!-- Full-screen overlay -->
   <Teleport to="body">
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-base-300/80 backdrop-blur-sm">
-      <div class="w-full max-w-2xl mx-4 bg-base-100 rounded-2xl shadow-2xl overflow-hidden flex flex-col" style="max-height: 90vh">
+      <div class="w-full max-w-2xl mx-4 bg-base-100 rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+        style="max-height: 90vh">
 
         <!-- Progress bar -->
         <div class="h-1 bg-base-300 shrink-0">
-          <div
-            class="h-full bg-primary transition-all duration-500"
-            :style="`width: ${((step) / (TOTAL_STEPS - 1)) * 100}%`"
-          ></div>
+          <div class="h-full bg-primary transition-all duration-500"
+            :style="`width: ${((step) / (TOTAL_STEPS - 1)) * 100}%`"></div>
         </div>
 
         <!-- Step content -->
@@ -135,25 +185,74 @@ async function finish() {
 
           <!-- ── Step 0: Welcome ── -->
           <div v-if="step === 0" class="space-y-5">
-            <div class="text-4xl mb-2">🏡</div>
-            <h1 class="text-2xl font-display font-bold">Welcome to Helm</h1>
-            <p class="text-base-content/70 leading-relaxed">
-              You're about to set up a financial picture that actually makes sense for your life.
-              Helm is built around one idea: <strong>what if you lived entirely on one income, and saved the other?</strong>
-            </p>
-            <p class="text-base-content/70 leading-relaxed">
-              We'll walk you through the essentials in about 5 minutes. At the end, you'll land
-              in your first Monthly Entry ready to start logging.
-            </p>
-            <div class="rounded-xl border border-base-300 bg-base-200/50 p-4 space-y-2">
-              <p class="text-sm font-medium">Here's what we'll set up:</p>
-              <ul class="text-sm text-base-content/60 space-y-1">
-                <li>✦ Your income sources — and which ones to "live on"</li>
-                <li>✦ Your fixed recurring expenses</li>
-                <li>✦ Your credit cards and spending budgets</li>
-                <li>✦ Any debts you're tracking <span class="text-base-content/40">(optional)</span></li>
-              </ul>
-            </div>
+
+            <!-- Default: welcome + import/fresh-start fork -->
+            <template v-if="importStatus === 'idle'">
+              <div class="text-4xl mb-2">🏡</div>
+              <h1 class="text-2xl font-display font-bold">Welcome to Helm</h1>
+              <p class="text-base-content/70 leading-relaxed">
+                You're about to set up a financial picture that actually makes sense for your life.
+                Helm is built around one idea: <strong>what if you lived entirely on one income, and saved the
+                  other?</strong>
+              </p>
+              <p class="text-base-content/70 leading-relaxed">
+                Already have a Helm backup or <code>data.json</code> from another install? You can import it
+                directly and skip setup entirely.
+              </p>
+              <div class="rounded-xl border border-base-300 bg-base-200/50 p-4 space-y-2">
+                <p class="text-sm font-medium">Starting fresh, we'll walk you through:</p>
+                <ul class="text-sm text-base-content/60 space-y-1">
+                  <li>✦ Your income sources — and which ones to "live on"</li>
+                  <li>✦ Your fixed recurring expenses</li>
+                  <li>✦ Your credit cards and spending budgets</li>
+                  <li>✦ Any debts you're tracking <span class="text-base-content/40">(optional)</span></li>
+                </ul>
+              </div>
+            </template>
+
+            <!-- Import in progress -->
+            <template v-else-if="importStatus === 'importing'">
+              <div class="text-4xl mb-2">⏳</div>
+              <h1 class="text-2xl font-display font-bold">Importing your data…</h1>
+              <p class="text-base-content/70 leading-relaxed">
+                Reading your file and rebuilding accounts, cards, and history from it.
+              </p>
+            </template>
+
+            <!-- Import failed -->
+            <template v-else-if="importStatus === 'error'">
+              <div class="text-4xl mb-2">⚠️</div>
+              <h1 class="text-2xl font-display font-bold">Import didn't go through</h1>
+              <p class="text-base-content/70 leading-relaxed">{{ importError }}</p>
+              <p class="text-sm text-base-content/50 leading-relaxed">
+                Make sure you're selecting a Helm backup file — either one exported from
+                Settings → Export backup, or an existing <code>data.json</code>. You can try again,
+                or start fresh instead.
+              </p>
+            </template>
+
+            <!-- Import succeeded -->
+            <template v-else-if="importStatus === 'done'">
+              <svg xmlns="http://www.w3.org/2000/svg" class="size-6" fill="currentColor" viewBox="0 0 24 24">
+                <!--Boxicons v3.0.8 https://boxicons.com | License  https://docs.boxicons.com/free-->
+                <path
+                  d="m19.94 7.68-.03-.09a.8.8 0 0 0-.2-.29l-5-5a1 1 0 0 0-.3-.2l-.09-.03a.9.9 0 0 0-.27-.05c-.02 0-.04-.01-.05-.01H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-12s-.01-.04-.01-.06c0-.09-.02-.17-.05-.26ZM6 20V4h7v4c0 .55.45 1 1 1h4v11z">
+                </path>
+                <path d="M8 12h2v6H8zm3-2h2v8h-2zm3 4h2v4h-2z"></path>
+              </svg>
+              <h1 class="text-2xl font-display font-bold">Import complete</h1>
+              <p class="text-base-content/70 leading-relaxed">
+                Your existing data is loaded in — accounts, snapshots, cards, and history are all here.
+              </p>
+              <div v-if="importWarnings.length" class="rounded-xl border border-warning/30 bg-warning/10 p-4 space-y-2">
+                <p class="text-sm font-medium">A few things to note:</p>
+                <ul class="text-sm text-base-content/60 space-y-1 list-disc list-inside">
+                  <li v-for="(warning, i) in importWarnings" :key="i">{{ warning }}</li>
+                </ul>
+              </div>
+              <p v-else class="text-sm text-success/80">Everything came through cleanly — no gaps found.</p>
+            </template>
+
           </div>
 
           <!-- ── Step 1: Income sources ── -->
@@ -168,31 +267,18 @@ async function finish() {
             </p>
 
             <div class="space-y-2">
-              <div
-                v-for="row in incomeRows"
-                :key="row.id"
-                class="flex items-center gap-2"
-              >
-                <input
-                  type="text"
-                  class="input input-sm input-bordered flex-1"
-                  placeholder="e.g. Riley's Salary, Freelance, Partner Income"
-                  v-model="row.label"
-                />
-                <label
-                  v-if="hasMultipleIncomeSources || filledIncomeRows.length > 0"
+              <div v-for="row in incomeRows" :key="row.id" class="flex items-center gap-2">
+                <input type="text" class="input input-sm input-bordered flex-1"
+                  placeholder="e.g. Riley's Salary, Freelance, Partner Income" v-model="row.label" />
+                <label v-if="hasMultipleIncomeSources || filledIncomeRows.length > 0"
                   class="flex items-center gap-1.5 text-xs text-base-content/60 cursor-pointer select-none shrink-0"
-                  :title="'Mark as primary earner income'"
-                >
+                  :title="'Mark as primary earner income'">
                   <input type="checkbox" class="checkbox checkbox-xs checkbox-primary" v-model="row.isPrimary" />
                   Primary
                 </label>
-                <button
-                  type="button"
+                <button type="button"
                   class="btn btn-ghost btn-xs btn-circle text-base-content/30 hover:text-error shrink-0"
-                  @click="removeIncomeRow(row.id)"
-                  :disabled="incomeRows.length === 1"
-                >✕</button>
+                  @click="removeIncomeRow(row.id)" :disabled="incomeRows.length === 1">✕</button>
               </div>
             </div>
 
@@ -223,32 +309,17 @@ async function finish() {
             </p>
 
             <div class="space-y-2">
-              <div
-                v-for="row in expenseRows"
-                :key="row.id"
-                class="flex items-center gap-2"
-              >
-                <input
-                  type="text"
-                  class="input input-sm input-bordered flex-1"
-                  placeholder="e.g. Rent, Netflix, Car insurance"
-                  v-model="row.label"
-                />
+              <div v-for="row in expenseRows" :key="row.id" class="flex items-center gap-2">
+                <input type="text" class="input input-sm input-bordered flex-1"
+                  placeholder="e.g. Rent, Netflix, Car insurance" v-model="row.label" />
                 <div class="relative shrink-0">
                   <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-base-content/40 text-xs">$</span>
-                  <input
-                    type="number"
-                    class="input input-sm input-bordered w-28 pl-6 font-mono text-right"
-                    placeholder="0"
-                    v-model="row.amount"
-                  />
+                  <input type="number" class="input input-sm input-bordered w-28 pl-6 font-mono text-right"
+                    placeholder="0" v-model="row.amount" />
                 </div>
-                <button
-                  type="button"
+                <button type="button"
                   class="btn btn-ghost btn-xs btn-circle text-base-content/30 hover:text-error shrink-0"
-                  @click="removeExpenseRow(row.id)"
-                  :disabled="expenseRows.length === 1"
-                >✕</button>
+                  @click="removeExpenseRow(row.id)" :disabled="expenseRows.length === 1">✕</button>
               </div>
             </div>
 
@@ -272,36 +343,23 @@ async function finish() {
               and fixed expenses — you can spread that across your cards however you like.
             </p>
             <p class="text-xs text-base-content/40">
-              Not sure what budget to set? Leave it at 0 for now — the bandwidth widget will suggest one once you've logged a month or two.
+              Not sure what budget to set? Leave it at 0 for now — the bandwidth widget will suggest one once you've
+              logged a
+              month or two.
             </p>
 
             <div class="space-y-2">
-              <div
-                v-for="row in cardRows"
-                :key="row.id"
-                class="flex items-center gap-2"
-              >
-                <input
-                  type="text"
-                  class="input input-sm input-bordered flex-1"
-                  placeholder="e.g. Chase Sapphire, Amex Blue"
-                  v-model="row.name"
-                />
+              <div v-for="row in cardRows" :key="row.id" class="flex items-center gap-2">
+                <input type="text" class="input input-sm input-bordered flex-1"
+                  placeholder="e.g. Chase Sapphire, Amex Blue" v-model="row.name" />
                 <div class="relative shrink-0">
                   <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-base-content/40 text-xs">$</span>
-                  <input
-                    type="number"
-                    class="input input-sm input-bordered w-28 pl-6 font-mono text-right"
-                    placeholder="Budget"
-                    v-model="row.targetBudget"
-                  />
+                  <input type="number" class="input input-sm input-bordered w-28 pl-6 font-mono text-right"
+                    placeholder="Budget" v-model="row.targetBudget" />
                 </div>
-                <button
-                  type="button"
+                <button type="button"
                   class="btn btn-ghost btn-xs btn-circle text-base-content/30 hover:text-error shrink-0"
-                  @click="removeCardRow(row.id)"
-                  :disabled="cardRows.length === 1"
-                >✕</button>
+                  @click="removeCardRow(row.id)" :disabled="cardRows.length === 1">✕</button>
               </div>
             </div>
 
@@ -323,31 +381,24 @@ async function finish() {
             </p>
 
             <div class="space-y-2">
-              <div
-                v-for="row in debtRows"
-                :key="row.id"
-                class="flex flex-wrap items-center gap-2"
-              >
-                <input
-                  type="text"
-                  class="input input-sm input-bordered flex-1 min-w-[140px]"
-                  placeholder="e.g. Car loan, Student loan"
-                  v-model="row.name"
-                />
+              <div v-for="row in debtRows" :key="row.id" class="flex flex-wrap items-center gap-2">
+                <input type="text" class="input input-sm input-bordered flex-1 min-w-[140px]"
+                  placeholder="e.g. Car loan, Student loan" v-model="row.name" />
                 <div class="relative">
                   <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-base-content/40 text-xs">$</span>
-                  <input type="number" class="input input-sm input-bordered w-28 pl-6 font-mono text-right" placeholder="Balance" v-model="row.balance" />
+                  <input type="number" class="input input-sm input-bordered w-28 pl-6 font-mono text-right"
+                    placeholder="Balance" v-model="row.balance" />
                 </div>
-                <input type="number" class="input input-sm input-bordered w-20 font-mono text-right" placeholder="APR %" v-model="row.annualRatePercent" />
+                <input type="number" class="input input-sm input-bordered w-20 font-mono text-right" placeholder="APR %"
+                  v-model="row.annualRatePercent" />
                 <div class="relative">
                   <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-base-content/40 text-xs">$</span>
-                  <input type="number" class="input input-sm input-bordered w-28 pl-6 font-mono text-right" placeholder="Min. payment" v-model="row.minimumPayment" />
+                  <input type="number" class="input input-sm input-bordered w-28 pl-6 font-mono text-right"
+                    placeholder="Min. payment" v-model="row.minimumPayment" />
                 </div>
-                <button
-                  type="button"
+                <button type="button"
                   class="btn btn-ghost btn-xs btn-circle text-base-content/30 hover:text-error shrink-0"
-                  @click="removeDebtRow(row.id)"
-                >✕</button>
+                  @click="removeDebtRow(row.id)">✕</button>
               </div>
             </div>
 
@@ -390,87 +441,63 @@ async function finish() {
         <div class="shrink-0 px-8 py-5 border-t border-base-300 flex items-center justify-between">
           <!-- Step counter -->
           <div class="flex items-center gap-1.5">
-            <div
-              v-for="i in TOTAL_STEPS"
-              :key="i"
-              class="rounded-full transition-all duration-300"
-              :class="i - 1 === step
-                ? 'w-4 h-2 bg-primary'
-                : i - 1 < step
-                  ? 'w-2 h-2 bg-primary/40'
-                  : 'w-2 h-2 bg-base-300'"
-            ></div>
+            <div v-for="i in TOTAL_STEPS" :key="i" class="rounded-full transition-all duration-300" :class="i - 1 === step
+              ? 'w-4 h-2 bg-primary'
+              : i - 1 < step
+                ? 'w-2 h-2 bg-primary/40'
+                : 'w-2 h-2 bg-base-300'"></div>
           </div>
 
           <div class="flex items-center gap-3">
-            <button
-              v-if="step > 0"
-              type="button"
-              class="btn btn-ghost btn-sm"
-              @click="back"
-            >← Back</button>
+            <button v-if="step > 0" type="button" class="btn btn-ghost btn-sm" @click="back">← Back</button>
 
-            <!-- Welcome: just Next -->
-            <button
-              v-if="step === 0"
-              type="button"
-              class="btn btn-primary btn-sm"
-              @click="next"
-            >Let's get started →</button>
+            <!-- Welcome: fork into import vs. fresh start, or resolve an import attempt -->
+            <template v-if="step === 0 && importStatus === 'idle'">
+              <button type="button" class="btn btn-ghost btn-sm" @click="handleImportClick">
+                <svg xmlns="http://www.w3.org/2000/svg" class="size-6" fill="currentColor" viewBox="0 0 24 24">
+                  <!--Boxicons v3.0.8 https://boxicons.com | License  https://docs.boxicons.com/free-->
+                  <path
+                    d="m19.94 7.68-.03-.09a.8.8 0 0 0-.2-.29l-5-5a1 1 0 0 0-.3-.2l-.09-.03a.9.9 0 0 0-.27-.05c-.02 0-.04-.01-.05-.01H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-12s-.01-.04-.01-.06c0-.09-.02-.17-.05-.26ZM6 20V4h7v4c0 .55.45 1 1 1h4v11z">
+                  </path>
+                  <path d="M8 12h2v6H8zm3-2h2v8h-2zm3 4h2v4h-2z"></path>
+                </svg>
+                Import existing
+                data</button>
+              <button type="button" class="btn btn-primary btn-sm" @click="next">Start fresh →</button>
+            </template>
+            <button v-else-if="step === 0 && importStatus === 'importing'" type="button" class="btn btn-primary btn-sm"
+              disabled>Importing…</button>
+            <template v-else-if="step === 0 && importStatus === 'error'">
+              <button type="button" class="btn btn-ghost btn-sm" @click="importStatus = 'idle'">← Back</button>
+              <button type="button" class="btn btn-primary btn-sm" @click="handleImportClick">Try again</button>
+            </template>
+            <button v-else-if="step === 0 && importStatus === 'done'" type="button" class="btn btn-primary btn-sm"
+              @click="completeImport">Take me to my data →</button>
 
             <!-- Income: save labels then next -->
-            <button
-              v-else-if="step === 1"
-              type="button"
-              class="btn btn-primary btn-sm"
-              :disabled="!filledIncomeRows.length"
-              @click="saveIncomeStep"
-            >Next →</button>
+            <button v-else-if="step === 1" type="button" class="btn btn-primary btn-sm"
+              :disabled="!filledIncomeRows.length" @click="saveIncomeStep">Next →</button>
 
             <!-- Recurring expenses: next (data saved with first month entry) -->
-            <button
-              v-else-if="step === 2"
-              type="button"
-              class="btn btn-primary btn-sm"
-              @click="next"
-            >Next →</button>
+            <button v-else-if="step === 2" type="button" class="btn btn-primary btn-sm" @click="next">Next →</button>
 
             <!-- Cards: save cards then next -->
-            <button
-              v-else-if="step === 3"
-              type="button"
-              class="btn btn-primary btn-sm"
-              @click="saveCardsStep"
-            >Next →</button>
+            <button v-else-if="step === 3" type="button" class="btn btn-primary btn-sm" @click="saveCardsStep">Next
+              →</button>
 
             <!-- Debts: optional — skip or save -->
             <template v-else-if="step === 4">
-              <button
-                type="button"
-                class="btn btn-ghost btn-sm text-base-content/40"
-                @click="next"
-              >Skip for now</button>
-              <button
-                v-if="filledDebtRows.length"
-                type="button"
-                class="btn btn-primary btn-sm"
-                @click="saveDebtsStep"
-              >Save & continue →</button>
-              <button
-                v-else
-                type="button"
-                class="btn btn-primary btn-sm"
-                @click="next"
-              >Continue →</button>
+              <button type="button" class="btn btn-ghost btn-sm text-base-content/40" @click="next">Skip for
+                now</button>
+              <button v-if="filledDebtRows.length" type="button" class="btn btn-primary btn-sm"
+                @click="saveDebtsStep">Save & continue →</button>
+              <button v-else type="button" class="btn btn-primary btn-sm" @click="next">Continue →</button>
             </template>
 
             <!-- Finish -->
-            <button
-              v-else-if="step === 5"
-              type="button"
-              class="btn btn-primary btn-sm"
-              @click="finish"
-            >Take me to my first entry →</button>
+            <button v-else-if="step === 5" type="button" class="btn btn-primary btn-sm" @click="finish">Take me to my
+              first
+              entry →</button>
           </div>
         </div>
 

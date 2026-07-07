@@ -1,20 +1,20 @@
 <script setup>
 import { useRoute } from 'vue-router'
 import { useSettingsStore } from '../stores/settingsStore'
+import { Grid, Edit, Wallet, History, CreditCard, Flag, Home, Cog } from '@boxicons/vue'
 
 const route = useRoute()
 const settings = useSettingsStore()
 const links = [
-  { to: '/', label: 'Dashboard' },
-  { to: '/entry', label: 'Monthly Entry' },
-  { to: '/accounts', label: 'Accounts' },
-  { to: '/history', label: 'History' },
-  { to: '/cards', label: 'Credit Cards' },
-  { to: '/goals', label: 'Goals' },
-  { to: '/affordability', label: 'Affordability' },
-  { to: '/settings', label: 'Settings' },
+  { to: '/', label: 'Dashboard', icon: Grid },
+  { to: '/entry', label: 'Monthly Entry', icon: Edit },
+  { to: '/accounts', label: 'Accounts', icon: Wallet },
+  { to: '/history', label: 'History', icon: History },
+  { to: '/cards', label: 'Credit Cards', icon: CreditCard },
+  { to: '/goals', label: 'Goals', icon: Flag },
+  { to: '/affordability', label: 'Affordability', icon: Home },
+  { to: '/settings', label: 'Settings', icon: Cog },
 ]
-
 function toggleTheme() {
   settings.setTheme(settings.theme === 'helm-dark' ? 'helm' : 'helm-dark')
 }
@@ -38,8 +38,9 @@ function toggleTheme() {
     <div class="flex-none flex items-center gap-1">
       <ul class="menu menu-horizontal gap-1 text-sm">
         <li v-for="link in links" :key="link.to">
-          <RouterLink :to="link.to" class="rounded-md" active-class="menu-active"
+          <RouterLink :to="link.to" class="rounded-md flex items-center gap-1.5" active-class="menu-active"
             :class="{ 'bg-primary text-primary-content': route.path === link.to }">
+            <component :is="link.icon" size="12" />
             {{ link.label }}
           </RouterLink>
         </li>
