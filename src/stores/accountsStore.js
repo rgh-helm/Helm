@@ -21,9 +21,14 @@ export const useAccountsStore = defineStore('accounts', () => {
   // Throws (with a user-facing message) on an empty name or invalid kind/
   // goalType — left uncaught here so callers can surface it next to
   // whatever form triggered it, same pattern as the other CRUD stores.
+  // Returns the saved record — callers that need the real (server-
+  // assigned) id right away, e.g. to log an initial balance in the same
+  // flow, shouldn't rely on the id they passed in: a brand-new account
+  // gets its id assigned by store.cjs, not reused from the caller.
   async function saveAccount(account) {
-    await window.api.accounts.save(deepClone(account))
+    const saved = await window.api.accounts.save(deepClone(account))
     await loadAccounts()
+    return saved
   }
 
   // Deleting an account also deletes its balance history (there's no

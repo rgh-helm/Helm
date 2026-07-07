@@ -4,12 +4,14 @@ import { useFinanceStore } from '../stores/financeStore'
 import { useCreditCardStore } from '../stores/creditCardStore'
 import { useGoalsStore } from '../stores/goalsStore'
 import { useSettingsStore } from '../stores/settingsStore'
+import { useAccountsStore } from '../stores/accountsStore'
 import { currentMonthKey } from '../utils/format'
 
 const finance  = useFinanceStore()
 const cards    = useCreditCardStore()
 const goals    = useGoalsStore()
 const settings = useSettingsStore()
+const accounts = useAccountsStore()
 
 const steps = computed(() => [
   {
@@ -18,6 +20,13 @@ const steps = computed(() => [
     detail: 'Head to Monthly Entry and record your income and expenses.',
     done: finance.actualSnapshots.length > 0,
     to: '/entry',
+  },
+  {
+    id: 'transaction_account',
+    label: 'Mark your primary checking account',
+    detail: 'In Accounts, check "Use for Monthly Entry predicted balance" on the one account your day-to-day money moves through — most of the forecasting and charts key off this.',
+    done: accounts.accounts.some((a) => a.isTransactionAccount),
+    to: '/accounts',
   },
   {
     id: 'primary_labels',

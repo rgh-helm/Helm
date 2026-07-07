@@ -103,8 +103,37 @@ function injectMissingDebtItems() {
   }
 }
 
+// Same idea as injectMissingDebtItems, for scheduled income: fills in any
+// occurrence not already present for this month (identified by
+// scheduleSourceId), so a schedule that didn't exist yet when this
+// month's snapshot was first created — e.g. one set up during onboarding
+// before the snapshot existed, or added/edited afterward — still shows
+// up without the user re-entering paychecks by hand.
+function injectMissingScheduledIncome() {
+  const monthKey = form.value.month
+  const existingSourceIds = new Set(
+    form.value.incomeItems.filter((i) => i.scheduleSourceId).map((i) => i.scheduleSourceId)
+  )
+  const toInject = []
+  for (const option of incomeOptionsStore.incomeOptions) {
+    if (!option.schedule?.type || existingSourceIds.has(option.id)) continue
+    for (const occ of getScheduledOccurrences(option.schedule, monthKey)) {
+      toInject.push({
+        id: uid(),
+        label: option.name,
+        amount: occ.amount,
+        dayOfMonth: occ.dayOfMonth,
+        scheduleSourceId: option.id,
+      })
+    }
+  }
+  if (toInject.length) {
+    form.value.incomeItems = [...form.value.incomeItems, ...toInject]
+  }
+}
+
 // Re-initialise whenever the parent changes target snapshot or month,
-// then ensure debt items are present.
+// then ensure debt items and scheduled income are present.
 watch(
   [() => props.initial, () => props.month],
   ([initial]) => {
@@ -112,14 +141,22 @@ watch(
     monthChangeStatus.value = ''
     isDirty.value = false
     injectMissingDebtItems()
+    injectMissingScheduledIncome()
   }
 )
 
-// Also run when debt accounts first load (async) or change — so that
-// if the store wasn't ready when the form initialised, items still appear.
+// Also run when debt accounts or income schedules first load (async) or
+// change — so that if a store wasn't ready when the form initialised, or
+// a schedule is added/edited after the fact, items still appear without
+// requiring a fresh blank month.
 watch(
   () => accountsStore.debtAccounts,
   () => injectMissingDebtItems(),
+  { immediate: true }
+)
+watch(
+  () => incomeOptionsStore.incomeOptions,
+  () => injectMissingScheduledIncome(),
   { immediate: true }
 )
 

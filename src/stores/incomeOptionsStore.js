@@ -12,10 +12,14 @@ export const useIncomeOptionsStore = defineStore('incomeOptions', () => {
 
   // Throws (with a user-facing message) on empty/duplicate names — left
   // uncaught here so callers can surface it next to whatever form field
-  // triggered it, same pattern as the other CRUD stores.
-  async function addIncomeOption(name) {
-    await window.api.incomeOptions.save({ id: null, name, schedule: null })
+  // triggered it, same pattern as the other CRUD stores. Accepts an
+  // optional schedule up front (e.g. from onboarding) instead of forcing
+  // a separate saveSchedule call — returns the saved record so a caller
+  // that needs the real id right away doesn't have to re-derive it.
+  async function addIncomeOption(name, schedule = null) {
+    const saved = await window.api.incomeOptions.save({ id: null, name, schedule })
     await loadIncomeOptions()
+    return saved
   }
 
   async function renameIncomeOption(id, name) {
