@@ -259,6 +259,37 @@ function migrateToUnifiedAccounts(data) {
   return data
 }
 
+// Step 3: backfill scheduleSourceId onto income items that predate it.
+// SnapshotForm's injectMissingScheduledIncome() decides whether a
+// schedule already has a paycheck logged for a given month purely by
+// scheduleSourceId — but income items logged by hand, backfilled, or
+// imported before an option's schedule existed never got that tag. Left
+// untagged, that check finds nothing and silently injects a second,
+// duplicate set of scheduled paychecks the next time the month is opened
+// while that option has an active schedule. This tags any income item
+// that's missing the field but whose label (trimmed, case-insensitive)
+// matches a currently-scheduled option's name — same identity rule
+// already used elsewhere for label-based matching (categories, debt/asset
+// accounts). Idempotent: only touches items missing the tag, so re-running
+// on every load is a no-op once caught up. Renaming an option afterward
+// intentionally breaks this label link for its older rows, same as the
+// live form's fallback — see SnapshotForm.
+function migrateScheduleSourceIds(data) {
+  const scheduledOptions = (data.incomeOptions || []).filter((o) => o.schedule?.type)
+  if (!scheduledOptions.length) return data
+  const idByLabel = new Map(
+    scheduledOptions.map((o) => [String(o.name || '').trim().toLowerCase(), o.id])
+  )
+  for (const snapshot of data.snapshots) {
+    for (const item of snapshot.incomeItems || []) {
+      if (item.scheduleSourceId) continue
+      const key = String(item.label || '').trim().toLowerCase()
+      if (idByLabel.has(key)) item.scheduleSourceId = idByLabel.get(key)
+    }
+  }
+  return data
+}
+
 function load() {
   if (cache) return cache
   const file = getDataPath()
@@ -297,6 +328,7 @@ function load() {
   }
   migrateAssetFlagsToAccounts(cache)
   migrateToUnifiedAccounts(cache)
+  migrateScheduleSourceIds(cache)
   return cache
 }
 
@@ -959,6 +991,7 @@ function restoreFromPayload(payload) {
   }
   migrateAssetFlagsToAccounts(cache)
   migrateToUnifiedAccounts(cache)
+  migrateScheduleSourceIds(cache)
   persist()
   return { warnings }
 }

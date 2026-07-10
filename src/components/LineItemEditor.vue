@@ -16,8 +16,14 @@ const props = defineProps({
   // Credit card spend for this month — shown alongside the expense total
   // so the user can see the full cash-out picture at a glance
   cardTotal:        { type: Number,  default: 0 },
+  // IDs of rows that don't match what's actually saved for this month
+  // (new or edited since last save) — purely presentational, computed
+  // by the parent against its own notion of "saved."
+  unsavedIds:       { type: Array,   default: () => [] },
 })
 const emit = defineEmits(['update:modelValue'])
+
+const unsavedIdSet = computed(() => new Set(props.unsavedIds))
 
 const datalistId      = `categories-${uid()}`
 const labelDatalistId = `labels-${uid()}`
@@ -42,6 +48,22 @@ watch(
   },
   { deep: true }
 )
+
+// Blur handler for the day input — resorts synchronously rather than just
+// clearing focusedDayId and letting the watch above pick it up. Watchers
+// flush as a microtask, and clicking straight from one day field into
+// another (e.g. this row into "+ Add line" into the new row's day field)
+// fires blur then focus synchronously, back-to-back, before that flush
+// ever runs — so by the time the watch callback executes, focusedDayId is
+// already non-null again and it bails out having never resorted. The item
+// you just set a day on then stays wherever it was before (last in the
+// list, since new rows start with no day), permanently, until something
+// unrelated happens to trigger the watch again with nothing focused.
+// Sorting directly here removes the dependency on that timing entirely.
+function handleDayBlur() {
+  focusedDayId.value = null
+  applySort()
+}
 
 function applySort() {
   // Debt-linked items (accountId set) always pin to the top in definition order.
@@ -135,6 +157,11 @@ function updateItem(id, field, value) {
       <h3 class="font-display text-base font-semibold">{{ title }}</h3>
       <div class="flex items-center gap-3 shrink-0">
         <span
+          v-if="unsavedIdSet.size > 0"
+          class="text-[10px] font-medium text-warning bg-warning/10 rounded-full px-2 py-0.5 whitespace-nowrap"
+          :title="`${unsavedIdSet.size} row${unsavedIdSet.size === 1 ? '' : 's'} not saved yet`"
+        >{{ unsavedIdSet.size }} unsaved</span>
+        <span
           v-if="showDayOfMonth && unscheduledItems.length > 0"
           class="text-xs text-base-content/40 tabular-nums"
           :title="`${unscheduledItems.length} item${unscheduledItems.length === 1 ? '' : 's'} without a day assigned`"
@@ -172,6 +199,18 @@ function updateItem(id, field, value) {
           </RouterLink>
         </div>
 
+        <!-- Manual entries section header — marks where the debt block ends and
+             hand-entered items start, mirroring the header above so both
+             sections read as distinct groups rather than one blended list. -->
+        <div
+          v-if="!item.accountId && idx > 0 && displayItems[idx - 1]?.accountId"
+          class="flex items-center px-4 py-1.5 bg-base-200/70"
+        >
+          <span class="text-[10px] font-semibold text-base-content/50 uppercase tracking-wide">
+            Manual Entries
+          </span>
+        </div>
+
         <!-- Today separator (only for non-debt items) -->
         <div
           v-if="!item.accountId && needsTodaySeparator(item, idx)"
@@ -186,12 +225,14 @@ function updateItem(id, field, value) {
 
         <!-- Item row -->
         <div
-          class="flex items-center gap-2 px-4 py-2 transition-opacity"
+          class="flex items-center gap-2 px-4 py-2 mx-1 my-0.5 rounded-md border-2 transition-all"
           :class="[
-            item.accountId ? 'bg-base-200/30' : '',
+            item.accountId && !unsavedIdSet.has(item.id) ? 'bg-base-200/30' : '',
             !item.accountId && showDayOfMonth && currentDay && item.dayOfMonth && item.dayOfMonth < currentDay
               ? 'opacity-50' : '',
+            unsavedIdSet.has(item.id) ? 'border-warning bg-warning/20' : 'border-transparent',
           ]"
+          :title="unsavedIdSet.has(item.id) ? 'Not saved yet' : null"
         >
           <!-- Inputs — flex-wrap among themselves -->
           <div class="flex flex-wrap items-center gap-2 flex-1 min-w-0">
@@ -233,7 +274,7 @@ function updateItem(id, field, value) {
               title="Day of month this item hits (used for cash flow timeline)"
               :value="item.dayOfMonth ?? ''"
               @focus="focusedDayId = item.id"
-              @blur="focusedDayId = null"
+              @blur="handleDayBlur"
               @input="updateItem(item.id, 'dayOfMonth', parseInt($event.target.value) || null)"
             />
           </div>
