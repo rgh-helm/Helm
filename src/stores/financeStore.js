@@ -179,6 +179,23 @@ export const useFinanceStore = defineStore('finance', () => {
     actualSnapshots.value.length ? actualSnapshots.value[actualSnapshots.value.length - 1] : null
   )
 
+  const latestSnapshot = computed(() =>
+    actualSnapshots.value.length ? actualSnapshots.value[actualSnapshots.value.length - 1] : null
+  )
+
+  // "Last used the app" — the most recent updatedAt across every snapshot,
+  // regardless of which month it belongs to. Every saveSnapshot() call in
+  // store.cjs already stamps updatedAt, so this is purely derived from
+  // data already being persisted — no new field, no store.cjs changes.
+  // Returns an ISO string, or null if nothing has ever been saved.
+  const lastEntryAt = computed(() => {
+    let latest = null
+    for (const s of snapshots.value) {
+      if (s.updatedAt && (!latest || s.updatedAt > latest)) latest = s.updatedAt
+    }
+    return latest
+  })
+
   const currentHouseFund = computed(() => useAccountsStore().currentGoalTotal('house'))
   const currentEmergencyFund = computed(() => useAccountsStore().currentGoalTotal('emergency'))
   const houseFundRate = computed(() => useAccountsStore().houseFundRate)

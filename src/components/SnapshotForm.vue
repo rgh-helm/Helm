@@ -228,6 +228,30 @@ const liveExpenses = computed(() =>
 )
 const liveNetCashFlow = computed(() => liveIncome.value - liveExpenses.value)
 
+// "Last used" label for the sticky footer — relative time close in, an
+// actual date once it's been a while, so a week-old timestamp doesn't
+// read as a vague "7 days ago" without an anchor.
+function formatLastUsed(iso) {
+  if (!iso) return null
+  const date = new Date(iso)
+  const now = new Date()
+  const diffMins = Math.round((now - date) / 60000)
+  if (diffMins < 1) return 'just now'
+  if (diffMins < 60) return `${diffMins} min${diffMins === 1 ? '' : 's'} ago`
+  const diffHours = Math.round(diffMins / 60)
+  if (diffHours < 24) return `${diffHours} hr${diffHours === 1 ? '' : 's'} ago`
+  const diffDays = Math.round(diffHours / 24)
+  if (diffDays === 1) return 'yesterday'
+  if (diffDays < 7) return `${diffDays} days ago`
+  return date.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
+  })
+}
+
+const lastUsedLabel = computed(() => formatLastUsed(finance.lastEntryAt))
+
 const saving = ref(false)
 const error = ref('')
 const toast = useToast()
@@ -467,6 +491,7 @@ async function save() {
           <template v-else>
             All changes saved
           </template>
+          <span v-if="lastUsedLabel" class="block text-base-content/30">Last used {{ lastUsedLabel }}</span>
         </div>
         <div class="flex items-center gap-3">
           <p v-if="error" class="text-xs text-error max-w-xs leading-snug">{{ error }}</p>
