@@ -179,10 +179,6 @@ export const useFinanceStore = defineStore('finance', () => {
     actualSnapshots.value.length ? actualSnapshots.value[actualSnapshots.value.length - 1] : null
   )
 
-  const latestSnapshot = computed(() =>
-    actualSnapshots.value.length ? actualSnapshots.value[actualSnapshots.value.length - 1] : null
-  )
-
   // "Last used the app" — the most recent updatedAt across every snapshot,
   // regardless of which month it belongs to. Every saveSnapshot() call in
   // store.cjs already stamps updatedAt, so this is purely derived from
@@ -345,5 +341,6 @@ export const useFinanceStore = defineStore('finance', () => {
     avgNonRecurring,
     fixedObligations,
     suggestedCCCeiling,
+    lastEntryAt,
   }
 })
